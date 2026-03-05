@@ -166,23 +166,7 @@ release:create:
   release:
     name: "TaskFlow $CI_COMMIT_TAG"
     tag_name: "$CI_COMMIT_TAG"
-    description: |
-      ## TaskFlow $CI_COMMIT_TAG
-
-      ### Changes
-      See the [PROGRESS.md](${CI_PROJECT_URL}/-/blob/main/PROGRESS.md) for full changelog.
-
-      ### Artifacts
-      - Docker image: `$CI_REGISTRY_IMAGE:$CI_COMMIT_TAG`
-      - Built from commit: `$CI_COMMIT_SHORT_SHA`
-
-      ### How to deploy
-      ```bash
-      git checkout $CI_COMMIT_TAG
-      npm install --production
-      npm run build
-      pm2 restart taskflow-api
-      ```
+    description: "TaskFlow Release $CI_COMMIT_TAG. See PROGRESS.md for full changelog."
 
 # ═══════════════════════════════════════════════════════════════════
 # STAGE 5 — DEPLOY
