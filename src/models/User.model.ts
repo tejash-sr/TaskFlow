@@ -1,4 +1,4 @@
-import { Schema, model, Model, Types } from 'mongoose';
+import { Schema, model, Model } from 'mongoose';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { IUser, UserRole } from '@/types/models.types';

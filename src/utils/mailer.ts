@@ -39,10 +39,15 @@ export const transporter = createTransporter();
 export async function sendMail(options: MailOptions): Promise<void> {
   if (isDevMode()) {
     const textBody = options.text ?? options.html.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+    // eslint-disable-next-line no-console
     console.log('\n===== [DEV EMAIL] =====');
+    // eslint-disable-next-line no-console
     console.log(`To:      ${options.to}`);
+    // eslint-disable-next-line no-console
     console.log(`Subject: ${options.subject}`);
+    // eslint-disable-next-line no-console
     console.log(`Body:    ${textBody.substring(0, 500)}`);
+    // eslint-disable-next-line no-console
     console.log('========================\n');
     return;
   }

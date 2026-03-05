@@ -25,6 +25,7 @@ export async function applyGraphQL(app: Application): Promise<void> {
             const payload = verifyAccessToken(token);
             return { userId: payload.userId, userRole: payload.role };
           } catch {
+            // eslint-disable-next-line no-empty
           }
         }
         return {};

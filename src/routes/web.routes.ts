@@ -431,6 +431,7 @@ router.post('/comments/:id/delete', requireWebAuth, async (req: Request, res: Re
   try {
     await commentService.deleteComment(req.params.id, req.userId!);
   } catch {
+    // eslint-disable-next-line no-empty
   }
   res.redirect('/tasks/' + taskId);
 });
