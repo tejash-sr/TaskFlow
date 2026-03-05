@@ -121,6 +121,11 @@ test:integration:
     JWT_REFRESH_EXPIRES_IN: "7d"
     JEST_JUNIT_OUTPUT_DIR: "reports/integration"
     JEST_JUNIT_OUTPUT_NAME: "junit.xml"
+  before_script:
+    - node --version
+    - npm --version
+    - npm ci --prefer-offline
+    - echo "Waiting for MongoDB to be ready..." && sleep 5
   script:
     - npx jest --testPathPattern="tests/integration" --forceExit --runInBand
   rules:
