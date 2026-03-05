@@ -1,0 +1,86 @@
+import nodemailer from 'nodemailer';
+import { env } from '@/config/env';
+
+export interface MailOptions {
+  to: string;
+  subject: string;
+  html: string;
+  text?: string;
+}
+
+const DEV_HOSTS = ['localhost', '127.0.0.1', ''];
+
+function isDevMode() {
+  return env.isTest || !env.email.host || DEV_HOSTS.includes(env.email.host.toLowerCase());
+}
+
+function createTransporter() {
+  if (isDevMode()) {
+    return nodemailer.createTransport({
+      streamTransport: true,
+      newline: 'unix',
+      buffer: true,
+    });
+  }
+
+  return nodemailer.createTransport({
+    host: env.email.host,
+    port: env.email.port,
+    secure: env.email.port === 465,
+    auth: {
+      user: env.email.user,
+      pass: env.email.password,
+    },
+  });
+}
+
+export const transporter = createTransporter();
+
+export async function sendMail(options: MailOptions): Promise<void> {
+  if (isDevMode()) {
+    const textBody = options.text ?? options.html.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+    console.log('\n===== [DEV EMAIL] =====');
+    console.log(`To:      ${options.to}`);
+    console.log(`Subject: ${options.subject}`);
+    console.log(`Body:    ${textBody.substring(0, 500)}`);
+    console.log('========================\n');
+    return;
+  }
+  await transporter.sendMail({
+    from: env.email.user || 'taskflow@example.com',
+    to: options.to,
+    subject: options.subject,
+    html: options.html,
+    text: options.text ?? options.html.replace(/<[^>]*>/g, ''),
+  });
+}
+
+
+export function passwordResetEmail(name: string, resetUrl: string): MailOptions['html'] {
+  return `
+    <h2>TaskFlow — Password Reset Request</h2>
+    <p>Hi ${name},</p>
+    <p>You requested a password reset. Click the link below (valid 1 hour):</p>
+    <a href="${resetUrl}" style="background:#4f46e5;color:#fff;padding:10px 20px;text-decoration:none;border-radius:4px;">
+      Reset Password
+    </a>
+    <p>If you did not request this, please ignore this email.</p>
+  `;
+}
+
+export function welcomeEmail(name: string): MailOptions['html'] {
+  return `
+    <h2>Welcome to TaskFlow, ${name}!</h2>
+    <p>Your account has been created successfully.</p>
+    <p>Start organising your tasks and projects at <a href="http://localhost:${env.port}">TaskFlow</a>.</p>
+  `;
+}
+
+export function taskAssignedEmail(assigneeName: string, taskTitle: string, projectName: string): MailOptions['html'] {
+  return `
+    <h2>TaskFlow — New Task Assigned</h2>
+    <p>Hi ${assigneeName},</p>
+    <p>You have been assigned a new task: <strong>${taskTitle}</strong> in project <strong>${projectName}</strong>.</p>
+    <p>Log in to view the details.</p>
+  `;
+}
