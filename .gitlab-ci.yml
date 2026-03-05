@@ -29,12 +29,8 @@ lint:
     - npm run lint
     - npx tsc --noEmit
   rules:
-    - if: '$CI_COMMIT_BRANCH == "main"'
-    - if: '$CI_COMMIT_BRANCH == "develop"'
-    - if: '$CI_COMMIT_BRANCH =~ /^feature\//'
-    - if: '$CI_COMMIT_BRANCH =~ /^bonus\//'
-    - if: '$CI_COMMIT_BRANCH =~ /^hotfix\//'
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH =~ /.'
+    - when: always
 
 test:unit:
   stage: test
@@ -47,12 +43,8 @@ test:unit:
     - npx jest --testPathPattern="tests/unit" --forceExit --runInBand --coverage --coverageReporters=text --coverageReporters=cobertura
   coverage: '/Lines\s*:\s*(\d+(?:\.\d+)?%)/'
   rules:
-    - if: '$CI_COMMIT_BRANCH == "main"'
-    - if: '$CI_COMMIT_BRANCH == "develop"'
-    - if: '$CI_COMMIT_BRANCH =~ /^feature\//'
-    - if: '$CI_COMMIT_BRANCH =~ /^bonus\//'
-    - if: '$CI_COMMIT_BRANCH =~ /^hotfix\//'
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH =~ /.'
+    - when: always
   artifacts:
     when: always
     reports:
@@ -87,9 +79,8 @@ test:integration:
   script:
     - npx jest --testPathPattern="tests/integration" --forceExit --runInBand
   rules:
-    - if: '$CI_COMMIT_BRANCH == "main"'
-    - if: '$CI_COMMIT_BRANCH == "develop"'
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH =~ /.'
+    - when: always
   artifacts:
     when: always
     reports:
@@ -102,9 +93,8 @@ build:
   script:
     - npm run build
   rules:
-    - if: '$CI_COMMIT_BRANCH == "main"'
-    - if: '$CI_COMMIT_BRANCH == "develop"'
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH =~ /.'
+    - when: always
   artifacts:
     paths:
       - dist/
