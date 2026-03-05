@@ -8,10 +8,6 @@ interface CreateCommentDTO {
   parent?: string;
 }
 
-interface ThreadedComment extends Omit<IComment, 'parent'> {
-  replies: ThreadedComment[];
-}
-
 export class CommentService {
   async create(taskId: string, authorId: string, data: CreateCommentDTO): Promise<IComment> {
     const task = await Task.findOne({ _id: taskId, deletedAt: { $exists: false } });
