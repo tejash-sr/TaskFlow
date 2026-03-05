@@ -1,99 +1,58 @@
-# ═══════════════════════════════════════════════════════════════════
-# TaskFlow API — GitLab CI/CD Pipeline
-#
-# Branch strategy:
-#   feature/phase-N-*  →  lint + test only
-#   develop            →  lint + test + build + deploy:staging
-#   main               →  lint + test + build + deploy:production
-#   tags (v*.*.*)      →  lint + test + build + release
-#
-# Environments:
-#   staging    (auto on develop merge)
-#   production (manual gate on main merge)
-#
-# Tag versioning: v<MAJOR>.<MINOR>.<PATCH>  (SemVer)
-#   Phase 1 → v0.1.0   Phase 5 → v0.5.0
-#   Phase 8 → v0.8.0   All phases + polish → v1.0.0
-# ═══════════════════════════════════════════════════════════════════
+﻿image: node:20-alpine
 
-image: node:20-alpine
-
-# ─── Pipeline Variables ────────────────────────────────────────────
 variables:
   NODE_ENV: "test"
-  FF_USE_FASTZIP: "true"
-  ARTIFACT_COMPRESSION_LEVEL: "fast"
-  CACHE_COMPRESSION_LEVEL: "fast"
 
-# ─── Stage Order ──────────────────────────────────────────────────
 stages:
   - lint
   - test
   - build
-  - release
-  - deploy
 
-# ─── Cache: npm packages (keyed by lock-file hash) ────────────────
-.npm_cache: &npm_cache
-  cache:
-    key:
-      files:
-        - package-lock.json
-    paths:
-      - node_modules/
-    policy: pull-push
+cache:
+  key:
+    files:
+      - package-lock.json
+  paths:
+    - node_modules/
+  policy: pull-push
 
-# ─── Common node setup ────────────────────────────────────────────
 .node_setup: &node_setup
   before_script:
     - node --version
     - npm --version
     - npm ci --prefer-offline
 
-# ═══════════════════════════════════════════════════════════════════
-# STAGE 1 — LINT
-# ═══════════════════════════════════════════════════════════════════
 lint:
   stage: lint
-  <<: *npm_cache
   <<: *node_setup
   script:
     - npm run lint
     - npx tsc --noEmit
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-    - if: '$CI_COMMIT_BRANCH == "develop"'
     - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: '$CI_COMMIT_BRANCH == "develop"'
     - if: '$CI_COMMIT_BRANCH =~ /^feature\//'
-    - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+/'
-  artifacts:
-    when: on_failure
-    reports:
-      junit: lint-results.xml
-    expire_in: 1 week
+    - if: '$CI_COMMIT_BRANCH =~ /^bonus\//'
+    - if: '$CI_COMMIT_BRANCH =~ /^hotfix\//'
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
 
-# ═══════════════════════════════════════════════════════════════════
-# STAGE 2 — TEST
-# ═══════════════════════════════════════════════════════════════════
 test:unit:
   stage: test
-  <<: *npm_cache
   <<: *node_setup
   variables:
     NODE_ENV: "test"
     JEST_JUNIT_OUTPUT_DIR: "reports/unit"
     JEST_JUNIT_OUTPUT_NAME: "junit.xml"
   script:
-    - npx jest --testPathPattern="tests/unit" --forceExit --coverage
-      --coverageReporters="text" --coverageReporters="lcov"
-      --coverageReporters="cobertura"
+    - npx jest --testPathPattern="tests/unit" --forceExit --runInBand --coverage --coverageReporters=text --coverageReporters=cobertura
   coverage: '/Lines\s*:\s*(\d+(?:\.\d+)?%)/'
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-    - if: '$CI_COMMIT_BRANCH == "develop"'
     - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: '$CI_COMMIT_BRANCH == "develop"'
     - if: '$CI_COMMIT_BRANCH =~ /^feature\//'
-    - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+/'
+    - if: '$CI_COMMIT_BRANCH =~ /^bonus\//'
+    - if: '$CI_COMMIT_BRANCH =~ /^hotfix\//'
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
   artifacts:
     when: always
     reports:
@@ -107,7 +66,6 @@ test:unit:
 
 test:integration:
   stage: test
-  <<: *npm_cache
   <<: *node_setup
   services:
     - name: mongo:7.0
@@ -125,98 +83,29 @@ test:integration:
     - node --version
     - npm --version
     - npm ci --prefer-offline
-    - echo "Waiting for MongoDB to be ready..." && sleep 5
+    - sleep 5
   script:
     - npx jest --testPathPattern="tests/integration" --forceExit --runInBand
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-    - if: '$CI_COMMIT_BRANCH == "develop"'
     - if: '$CI_COMMIT_BRANCH == "main"'
-    - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+/'
+    - if: '$CI_COMMIT_BRANCH == "develop"'
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
   artifacts:
     when: always
     reports:
       junit: reports/integration/junit.xml
     expire_in: 1 week
 
-# ═══════════════════════════════════════════════════════════════════
-# STAGE 3 — BUILD
-# ═══════════════════════════════════════════════════════════════════
 build:
   stage: build
-  <<: *npm_cache
   <<: *node_setup
   script:
     - npm run build
   rules:
-    - if: '$CI_COMMIT_BRANCH == "develop"'
     - if: '$CI_COMMIT_BRANCH == "main"'
-    - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+/'
+    - if: '$CI_COMMIT_BRANCH == "develop"'
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
   artifacts:
     paths:
       - dist/
     expire_in: 1 week
-
-# ═══════════════════════════════════════════════════════════════════
-# STAGE 4 — RELEASE (tags only)
-# Creates a GitLab Release with changelog from tag annotation
-# ═══════════════════════════════════════════════════════════════════
-release:create:
-  stage: release
-  image: registry.gitlab.com/gitlab-org/release-cli:latest
-  rules:
-    - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+/'
-  script:
-    - echo "Creating release for $CI_COMMIT_TAG"
-  release:
-    name: "TaskFlow $CI_COMMIT_TAG"
-    tag_name: "$CI_COMMIT_TAG"
-    description: "TaskFlow Release $CI_COMMIT_TAG. See PROGRESS.md for full changelog."
-
-# ═══════════════════════════════════════════════════════════════════
-# STAGE 5 — DEPLOY
-# ═══════════════════════════════════════════════════════════════════
-
-# Staging: auto-deploy on develop merges
-deploy:staging:
-  stage: deploy
-  environment:
-    name: staging
-    url: https://taskflow-staging.grootan.com
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "develop"'
-      when: on_success
-  script:
-    - echo "=== Deploying to STAGING ==="
-    - echo "Branch: $CI_COMMIT_BRANCH  SHA: $CI_COMMIT_SHORT_SHA"
-    # Replace the block below with your actual deploy commands:
-    # Option A — SSH deploy
-    # - ssh deployer@staging.server 'cd /app && git pull && npm ci && npm run build && pm2 restart taskflow-staging'
-    # Option B — Docker
-    # - docker build -t $CI_REGISTRY_IMAGE:staging .
-    # - docker push $CI_REGISTRY_IMAGE:staging
-    # Option C — Render / Railway webhook
-    # - curl -X POST "$STAGING_DEPLOY_HOOK"
-    - echo "Staging deploy complete"
-  needs:
-    - build
-
-# Production: manual gate on main merges (safety first)
-deploy:production:
-  stage: deploy
-  environment:
-    name: production
-    url: https://taskflow.grootan.com
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "main"'
-      when: manual  # ← requires human approval in GitLab UI
-    - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+/'
-      when: manual
-  script:
-    - echo "=== Deploying to PRODUCTION ==="
-    - echo "Tag/Branch: $CI_COMMIT_TAG  SHA: $CI_COMMIT_SHORT_SHA"
-    # Replace with your actual production deploy commands
-    # - ssh deployer@prod.server 'cd /app && git fetch --tags && git checkout $CI_COMMIT_TAG && npm ci --production && npm run build && pm2 restart taskflow-api'
-    - echo "Production deploy complete"
-  needs:
-    - build
