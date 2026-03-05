@@ -1,4 +1,3 @@
-import User from '@/models/User.model';
 import Task from '@/models/Task.model';
 import { enqueueEmail } from '@/queues/emailQueue';
 

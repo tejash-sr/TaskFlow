@@ -1,5 +1,4 @@
 import { GraphQLScalarType, Kind } from 'graphql';
-import Task from '@/models/Task.model';
 import Project from '@/models/Project.model';
 import User from '@/models/User.model';
 import taskService from '@/services/task.service';
