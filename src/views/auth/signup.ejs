@@ -1,0 +1,105 @@
+<div class="auth-container">
+    <!-- Left visual panel -->
+    <div class="auth-visual">
+      <div class="auth-visual-shapes">
+        <div class="auth-shape auth-shape-1"></div>
+        <div class="auth-shape auth-shape-2"></div>
+        <div class="auth-shape auth-shape-3"></div>
+      </div>
+      <div class="auth-visual-content">
+        <div class="auth-visual-text">
+          <h2>Start managing smarter</h2>
+          <p>Join thousands of teams using TaskFlow to organise projects, track tasks, and ship work faster.</p>
+        </div>
+        <div class="auth-visual-features">
+          <div class="auth-feature">
+            <i class="fas fa-check-circle"></i>
+            <span>Unlimited tasks &amp; projects</span>
+          </div>
+          <div class="auth-feature">
+            <i class="fas fa-check-circle"></i>
+            <span>Real-time collaboration</span>
+          </div>
+          <div class="auth-feature">
+            <i class="fas fa-check-circle"></i>
+            <span>REST &amp; GraphQL API included</span>
+          </div>
+          <div class="auth-feature">
+            <i class="fas fa-check-circle"></i>
+            <span>Free forever — no credit card needed</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right form panel -->
+    <div class="auth-form-wrapper">
+      <div class="auth-form-container">
+        <div class="auth-brand">
+          <a href="/">
+            <div class="brand-icon brand-icon-sm"><i class="fas fa-bolt"></i></div>
+            <span class="brand-text">Task<span class="brand-accent">Flow</span></span>
+          </a>
+        </div>
+
+        <h1 class="auth-title">Create your account</h1>
+        <p class="auth-subtitle">Start managing tasks for free today</p>
+
+        <% if (typeof error !== 'undefined' && error) { %>
+          <div class="alert alert-error">
+            <i class="fas fa-exclamation-circle"></i>
+            <%= error %>
+          </div>
+        <% } %>
+
+        <div class="auth-form">
+          <form action="/signup" method="POST">
+            <div class="form-group">
+              <label class="form-label" for="name">Full name</label>
+              <div class="input-wrapper">
+                <i class="fas fa-user input-icon"></i>
+                <input
+                  type="text" id="name" name="name" class="form-input"
+                  placeholder="Jane Doe"
+                  value="<%= typeof formData !== 'undefined' && formData.name ? formData.name : '' %>"
+                  required autocomplete="name"
+                />
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="email">Email address</label>
+              <div class="input-wrapper">
+                <i class="fas fa-envelope input-icon"></i>
+                <input
+                  type="email" id="email" name="email" class="form-input"
+                  placeholder="you@example.com"
+                  value="<%= typeof formData !== 'undefined' && formData.email ? formData.email : '' %>"
+                  required autocomplete="email"
+                />
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="password">
+                Password <span style="font-weight:400;color:var(--text-tertiary);font-size:0.8rem;">(min. 8 characters)</span>
+              </label>
+              <div class="input-wrapper">
+                <i class="fas fa-lock input-icon"></i>
+                <input
+                  type="password" id="password" name="password" class="form-input"
+                  placeholder="At least 8 characters"
+                  minlength="8" required autocomplete="new-password"
+                />
+              </div>
+            </div>
+            <button type="submit" class="btn btn-primary btn-block btn-glow">
+              <i class="fas fa-user-plus"></i> Create Account
+            </button>
+          </form>
+        </div>
+
+        <p class="auth-footer-text">
+          Already have an account? <a href="/login">Sign in</a>
+        </p>
+      </div>
+    </div>
+  </div>

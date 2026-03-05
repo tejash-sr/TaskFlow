@@ -1,0 +1,209 @@
+﻿<!-- App Header -->
+<div class="app-header">
+  <button class="sidebar-toggle-btn" id="sidebarToggle" aria-label="Toggle Sidebar">
+    <i class="fas fa-bars"></i>
+  </button>
+  <div class="app-header-content">
+    <div>
+      <h1 class="page-title">Tasks</h1>
+      <p class="page-subtitle">
+        <%= pagination && pagination.total ? pagination.total : 0 %> task<%= (pagination && pagination.total !== 1) ? "s" : "" %> total
+      </p>
+    </div>
+    <div class="app-header-actions">
+      <a href="/tasks/new" class="btn btn-primary btn-sm">
+        <i class="fas fa-plus"></i> New Task
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- Filters Bar -->
+<div class="filters-bar">
+  <form action="/tasks" method="GET" class="filters-bar-inner" id="filterForm">
+    <div class="search-box-wrap">
+      <div class="search-box">
+        <i class="fas fa-search search-icon"></i>
+        <input type="text" name="search" class="search-input" placeholder="Search tasks&hellip;"
+          value="<%= typeof query !== 'undefined' && query.search ? query.search : '' %>" />
+      </div>
+      <button type="submit" class="btn btn-primary btn-sm search-submit-btn" title="Search">
+        <i class="fas fa-search"></i>
+      </button>
+    </div>
+    <div class="filter-group">
+      <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
+        <option value="">All Statuses</option>
+        <% ['todo', 'in-progress', 'review', 'done'].forEach(function(s) { %>
+          <option value="<%= s %>" <%= typeof query !== 'undefined' && query.status === s ? 'selected' : '' %>>
+            <%= s.charAt(0).toUpperCase() + s.slice(1) %>
+          </option>
+        <% }); %>
+      </select>
+      <select name="priority" class="form-select form-select-sm" onchange="this.form.submit()">
+        <option value="">All Priorities</option>
+        <% ['low', 'medium', 'high', 'urgent'].forEach(function(p) { %>
+          <option value="<%= p %>" <%= typeof query !== 'undefined' && query.priority === p ? 'selected' : '' %>>
+            <%= p.charAt(0).toUpperCase() + p.slice(1) %>
+          </option>
+        <% }); %>
+      </select>
+      <% if ((typeof query !== 'undefined') && (query.search || query.status || query.priority)) { %>
+        <a href="/tasks" class="btn btn-ghost btn-sm"><i class="fas fa-times"></i> Clear</a>
+      <% } %>
+    </div>
+  </form>
+  <div class="view-toggle" id="viewToggle">
+    <button type="button" class="view-btn active" data-view="list" title="List view"><i class="fas fa-list"></i></button>
+    <button type="button" class="view-btn" data-view="grid" title="Grid view"><i class="fas fa-th"></i></button>
+  </div>
+</div>
+
+<% if (!tasks || tasks.length === 0) { %>
+  <div class="empty-state">
+    <i class="fas fa-clipboard-list"></i>
+    <h3>No tasks found</h3>
+    <p>Try adjusting your filters, or create your first task.</p>
+    <a href="/tasks/new" class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> Create Task</a>
+  </div>
+<% } else { %>
+  <div class="tasks-list-view" id="tasksListView">
+    <div class="task-list-header">
+      <div class="task-col-check"></div>
+      <div class="task-col-title">Task</div>
+      <div class="task-col-project">Project</div>
+      <div class="task-col-priority">Priority</div>
+      <div class="task-col-status">Status</div>
+      <div class="task-col-due">Due Date</div>
+      <div class="task-col-assignee">Assignee</div>
+      <div class="task-col-actions"></div>
+    </div>
+    <% tasks.forEach(function(task) { %>
+      <div class="task-list-item" id="task-row-<%= task._id %>">
+        <div class="task-col-check">
+          <button class="task-status-check <%= task.status === 'done' ? 'checked' : '' %>"
+            onclick="toggleTaskDone('<%= task._id %>', this)" type="button"
+            title="<%= task.status === 'done' ? 'Mark as todo' : 'Mark as done' %>">
+            <% if (task.status === 'done') { %><i class="fas fa-check"></i><% } %>
+          </button>
+        </div>
+        <div class="task-col-title">
+          <a href="/tasks/<%= task._id %>" class="task-title-link <%= task.status === 'done' ? 'task-completed' : '' %>"><%= task.title %></a>
+          <% if (task.tags && task.tags.length > 0) { %>
+            <div class="task-tags">
+              <% task.tags.slice(0,3).forEach(function(tag) { %><span class="tag"><%= tag %></span><% }); %>
+            </div>
+          <% } %>
+        </div>
+        <div class="task-col-project">
+          <% if (task.project) { %>
+            <span class="task-project-badge"><i class="fas fa-folder"></i> <%= task.project.name || task.project %></span>
+          <% } else { %><span style="color:var(--text-tertiary);font-size:0.8rem;">&mdash;</span><% } %>
+        </div>
+        <div class="task-col-priority"><span class="badge badge-<%= task.priority %>"><%= task.priority %></span></div>
+        <div class="task-col-status"><span class="status-pill status-<%= task.status.replace(/-/g,'') %>"><%= task.status %></span></div>
+        <div class="task-col-due">
+          <% if (task.dueDate) { %>
+            <span style="font-size:0.8rem;color:var(--text-secondary);"><i class="fas fa-calendar-alt"></i> <%= new Date(task.dueDate).toLocaleDateString() %></span>
+          <% } else { %><span style="color:var(--text-tertiary);font-size:0.8rem;">&mdash;</span><% } %>
+        </div>
+        <div class="task-col-assignee">
+          <% if (task.assignee && task.assignee.name) { %>
+            <div class="avatar avatar-xs" title="<%= task.assignee.name %>"><%= task.assignee.name.charAt(0).toUpperCase() %></div>
+          <% } %>
+        </div>
+        <div class="task-col-actions">
+          <div class="task-actions-dropdown" id="dd-<%= task._id %>">
+            <button class="btn-icon btn-xs" type="button" onclick="toggleTaskDropdown('dd-<%= task._id %>')" title="Options">
+              <i class="fas fa-ellipsis-v"></i>
+            </button>
+            <div class="dropdown-menu dropdown-menu-right">
+              <a href="/tasks/<%= task._id %>" class="dropdown-item"><i class="fas fa-eye"></i> View</a>
+              <div class="dropdown-divider"></div>
+              <button type="button" class="dropdown-item dropdown-item-danger"
+                onclick="openConfirmModal('del-<%= task._id %>', 'Delete task? This cannot be undone.'); closeAllDropdowns();">
+                <i class="fas fa-trash"></i> Delete
+              </button>
+            </div>
+          </div>
+          <form id="del-<%= task._id %>" action="/tasks/<%= task._id %>/delete" method="POST" style="display:none;"></form>
+        </div>
+      </div>
+    <% }); %>
+  </div>
+
+  <div class="tasks-grid-view" id="tasksGridView" style="display:none;">
+    <% tasks.forEach(function(task) { %>
+      <div class="task-card">
+        <div class="task-card-header">
+          <span class="status-pill status-<%= task.status.replace(/-/g,'') %>" style="font-size:0.65rem;padding:2px 8px;"><%= task.status %></span>
+          <div class="task-actions-dropdown" id="ddg-<%= task._id %>">
+            <button class="btn-icon btn-xs" type="button" onclick="toggleTaskDropdown('ddg-<%= task._id %>')"><i class="fas fa-ellipsis-v"></i></button>
+            <div class="dropdown-menu dropdown-menu-right">
+              <a href="/tasks/<%= task._id %>" class="dropdown-item"><i class="fas fa-eye"></i> View</a>
+              <div class="dropdown-divider"></div>
+              <button type="button" class="dropdown-item dropdown-item-danger"
+                onclick="openConfirmModal('delg-<%= task._id %>', 'Delete task?'); closeAllDropdowns();">
+                <i class="fas fa-trash"></i> Delete
+              </button>
+            </div>
+          </div>
+          <form id="delg-<%= task._id %>" action="/tasks/<%= task._id %>/delete" method="POST" style="display:none;"></form>
+        </div>
+        <a href="/tasks/<%= task._id %>" class="task-card-title <%= task.status === 'done' ? 'task-completed' : '' %>"><%= task.title %></a>
+        <% if (task.description) { %>
+          <p class="task-card-desc"><%= task.description.length > 90 ? task.description.substring(0,90)+'...' : task.description %></p>
+        <% } %>
+        <div class="task-card-footer">
+          <span class="badge badge-<%= task.priority %>"><%= task.priority %></span>
+          <% if (task.dueDate) { %><span style="font-size:0.72rem;color:var(--text-tertiary);"><i class="fas fa-calendar-alt"></i> <%= new Date(task.dueDate).toLocaleDateString() %></span><% } %>
+          <% if (task.assignee && task.assignee.name) { %><div class="avatar avatar-xs" title="<%= task.assignee.name %>"><%= task.assignee.name.charAt(0).toUpperCase() %></div><% } %>
+        </div>
+      </div>
+    <% }); %>
+  </div>
+
+  <% if (pagination && pagination.totalPages > 1) { %>
+    <div class="pagination-bar">
+      <span class="pagination-info">Showing <%= (pagination.page-1)*20+1 %>&ndash;<%= Math.min(pagination.page*20, pagination.total) %> of <%= pagination.total %></span>
+      <div class="pagination">
+        <% if (pagination.page > 1) { %><a href="?page=<%= pagination.page-1 %>" class="pagination-btn"><i class="fas fa-chevron-left"></i></a><% } else { %><button class="pagination-btn" disabled><i class="fas fa-chevron-left"></i></button><% } %>
+        <% for (var i=1; i<=Math.min(pagination.totalPages,7); i++) { %><a href="?page=<%= i %>" class="pagination-btn <%= i===pagination.page?'active':'' %>"><%= i %></a><% } %>
+        <% if (pagination.page < pagination.totalPages) { %><a href="?page=<%= pagination.page+1 %>" class="pagination-btn"><i class="fas fa-chevron-right"></i></a><% } else { %><button class="pagination-btn" disabled><i class="fas fa-chevron-right"></i></button><% } %>
+      </div>
+    </div>
+  <% } %>
+<% } %>
+
+<script>
+function toggleTaskDone(taskId, btn) {
+  var f = document.createElement('form');
+  f.method = 'POST'; f.action = '/tasks/' + taskId + '/status';
+  var i = document.createElement('input');
+  i.type = 'hidden'; i.name = 'status'; i.value = btn.classList.contains('checked') ? 'todo' : 'done';
+  f.appendChild(i); document.body.appendChild(f); f.submit();
+}
+function toggleTaskDropdown(id) {
+  var dd = document.getElementById(id);
+  var wasOpen = dd.classList.contains('open');
+  closeAllDropdowns();
+  if (!wasOpen) dd.classList.add('open');
+}
+function closeAllDropdowns() {
+  document.querySelectorAll('.task-actions-dropdown.open').forEach(function(d){d.classList.remove('open');});
+}
+document.addEventListener('click', function(e){ if (!e.target.closest('.task-actions-dropdown')) closeAllDropdowns(); });
+(function(){
+  var lv=document.getElementById('tasksListView'), gv=document.getElementById('tasksGridView');
+  var sv=localStorage.getItem('tf_tasks_view')||'list';
+  var btns=document.querySelectorAll('#viewToggle .view-btn');
+  function setView(v){
+    if(!lv||!gv)return;
+    lv.style.display=v==='grid'?'none':''; gv.style.display=v==='grid'?'grid':'none';
+    btns.forEach(function(b){b.classList.toggle('active',b.dataset.view===v);});
+    localStorage.setItem('tf_tasks_view',v);
+  }
+  setView(sv);
+  btns.forEach(function(b){b.addEventListener('click',function(){setView(b.dataset.view);});});
+})();
+</script>

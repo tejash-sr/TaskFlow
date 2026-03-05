@@ -1,0 +1,242 @@
+﻿<div class="app-header">
+  <button class="sidebar-toggle-btn" id="sidebarToggle" aria-label="Toggle Sidebar">
+    <i class="fas fa-bars"></i>
+  </button>
+  <div class="app-header-content">
+    <div>
+      <a href="/projects" class="back-link" style="display:inline-flex;margin-bottom:4px;">
+        <i class="fas fa-arrow-left"></i> All Projects
+      </a>
+      <h1 class="page-title"><%= project.name %></h1>
+      <p class="page-subtitle"><%= project.description || 'No description' %></p>
+    </div>
+    <div class="app-header-actions">
+      <a href="/projects/<%= project._id %>/report" class="btn btn-outline btn-sm" title="PDF Report" target="_blank">
+        <i class="fas fa-file-pdf" style="color:#ef4444;"></i> PDF
+      </a>
+      <a href="/projects/<%= project._id %>/export" class="btn btn-outline btn-sm" title="CSV Export" target="_blank">
+        <i class="fas fa-file-csv" style="color:#10b981;"></i> CSV
+      </a>
+      <a href="/tasks/new?project=<%= project._id %>" class="btn btn-primary btn-sm">
+        <i class="fas fa-plus"></i> New Task
+      </a>
+      <button type="button" class="btn btn-danger-outline btn-sm"
+        onclick="openConfirmModal('del-project-<%= project._id %>', 'Delete project &quot;<%= project.name %>&quot;? All tasks will be deleted. This cannot be undone.')"
+        title="Delete Project">
+        <i class="fas fa-trash"></i> Delete
+      </button>
+      <form id="del-project-<%= project._id %>" action="/projects/<%= project._id %>/delete" method="POST" style="display:none;"></form>
+    </div>
+  </div>
+</div>
+
+<div class="project-show-layout">
+
+  <div class="project-show-main">
+    <div class="project-tasks-card">
+      <div class="card-header" style="border-bottom:1px solid var(--border-color-light);padding:var(--space-4) var(--space-5);">
+        <h3 class="card-title"><i class="fas fa-tasks"></i> Tasks (<%= tasks ? tasks.length : 0 %>)</h3>
+        <a href="/tasks/new?project=<%= project._id %>" class="btn btn-ghost btn-sm"><i class="fas fa-plus"></i> Add Task</a>
+      </div>
+
+      <% if (!tasks || tasks.length === 0) { %>
+        <div class="empty-state" style="padding:var(--space-10) var(--space-8);">
+          <i class="fas fa-clipboard-list"></i>
+          <h3>No tasks yet</h3>
+          <p>Create the first task for this project.</p>
+          <a href="/tasks/new?project=<%= project._id %>" class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> Create Task</a>
+        </div>
+      <% } else { %>
+        <%
+          var statusGroups = [
+            { key: 'todo',        label: 'To Do',       icon: 'fa-circle',          color: '#94a3b8' },
+            { key: 'in-progress', label: 'In Progress', icon: 'fa-spinner',         color: '#f59e0b' },
+            { key: 'review',      label: 'Review',      icon: 'fa-search',          color: '#6366f1' },
+            { key: 'done',        label: 'Done',        icon: 'fa-check-circle',    color: '#10b981' }
+          ];
+        %>
+        <div class="task-tree">
+          <% statusGroups.forEach(function(group) {
+            var groupTasks = tasks.filter(function(t){ return t.status === group.key; });
+            if (groupTasks.length === 0) return;
+          %>
+            <div class="task-tree-group" id="group-<%= group.key %>">
+              <button type="button" class="task-tree-header" onclick="toggleGroup('<%= group.key %>')" aria-expanded="true">
+                <span class="task-tree-toggle"><i class="fas fa-chevron-down"></i></span>
+                <i class="fas <%= group.icon %>" class="group-icon" data-color="<%= group.color %>" style="width:14px;"></i>
+                <span class="task-tree-group-label"><%= group.label %></span>
+                <span class="task-tree-count"><%= groupTasks.length %></span>
+              </button>
+              <div class="task-tree-children" id="children-<%= group.key %>">
+                <% groupTasks.forEach(function(task) { %>
+                  <div class="task-tree-item" id="task-row-<%= task._id %>">
+                    <span class="task-tree-line"></span>
+                    <button
+                      class="task-status-check <%= task.status === 'done' ? 'checked' : '' %>"
+                      onclick="toggleTaskDone('<%= task._id %>', this)"
+                      title="<%= task.status === 'done' ? 'Mark as todo' : 'Mark as done' %>">
+                      <% if (task.status === 'done') { %><i class="fas fa-check"></i><% } %>
+                    </button>
+                    <a href="/tasks/<%= task._id %>" class="task-tree-title <%= task.status === 'done' ? 'task-completed' : '' %>">
+                      <%= task.title %>
+                    </a>
+                    <div class="task-tree-meta">
+                      <span class="badge badge-<%= task.priority %>"><%= task.priority %></span>
+                      <% if (task.dueDate) { %>
+                        <span class="task-tree-due"><i class="fas fa-calendar-alt"></i> <%= new Date(task.dueDate).toLocaleDateString() %></span>
+                      <% } %>
+                      <% if (task.assignee && task.assignee.name) { %>
+                        <div class="avatar avatar-xs" title="<%= task.assignee.name %>"><%= task.assignee.name.charAt(0).toUpperCase() %></div>
+                      <% } %>
+                    </div>
+                    <div class="task-tree-actions">
+                      <a href="/tasks/<%= task._id %>" class="btn-icon btn-xs" title="View"><i class="fas fa-eye"></i></a>
+                      <button type="button" class="btn-icon btn-xs text-danger"
+                        onclick="openConfirmModal('del-<%= task._id %>', 'Delete task? This cannot be undone.')"
+                        title="Delete"><i class="fas fa-trash"></i></button>
+                      <form id="del-<%= task._id %>" action="/tasks/<%= task._id %>/delete" method="POST" style="display:none;"></form>
+                    </div>
+                  </div>
+                <% }); %>
+              </div>
+            </div>
+          <% }); %>
+        </div>
+      <% } %>
+    </div>
+  </div>
+
+  <div class="project-show-sidebar">
+    <div class="project-sidebar-card">
+      <h4><i class="fas fa-chart-pie"></i> Progress</h4>
+      <%
+        var total = tasks ? tasks.length : 0;
+        var done = tasks ? tasks.filter(function(t){ return t.status === 'done'; }).length : 0;
+        var pct = total > 0 ? Math.round((done/total)*100) : 0;
+      %>
+      <div style="margin-bottom:var(--space-3);">
+        <div style="display:flex;justify-content:space-between;margin-bottom:var(--space-2);">
+          <span style="font-size:0.8rem;color:var(--text-secondary);">Completion</span>
+          <span style="font-size:0.8rem;font-weight:700;color:var(--color-success);"><%= pct %>%</span>
+        </div>
+        <div style="height:8px;background:var(--bg-tertiary);border-radius:99px;overflow:hidden;">
+          <div class="progress-fill" data-width="<%= pct %>" style="height:100%;background:var(--color-success);border-radius:99px;transition:width 0.5s;"></div>
+        </div>
+      </div>
+      <div class="project-info-rows">
+        <div class="info-row">
+          <span class="info-label"><i class="fas fa-circle" style="color:#94a3b8;font-size:0.6rem;"></i> Todo</span>
+          <span class="info-value"><%= tasks ? tasks.filter(function(t){return t.status==='todo';}).length : 0 %></span>
+        </div>
+        <div class="info-row">
+          <span class="info-label"><i class="fas fa-spinner" style="color:#f59e0b;font-size:0.6rem;"></i> In Progress</span>
+          <span class="info-value"><%= tasks ? tasks.filter(function(t){return t.status==='in-progress';}).length : 0 %></span>
+        </div>
+        <div class="info-row">
+          <span class="info-label"><i class="fas fa-search" style="color:#6366f1;font-size:0.6rem;"></i> Review</span>
+          <span class="info-value"><%= tasks ? tasks.filter(function(t){return t.status==='review';}).length : 0 %></span>
+        </div>
+        <div class="info-row">
+          <span class="info-label"><i class="fas fa-check-circle" style="color:#10b981;font-size:0.6rem;"></i> Done</span>
+          <span class="info-value" style="color:var(--color-success);font-weight:700;"><%= done %></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="project-sidebar-card">
+      <h4><i class="fas fa-users"></i> Members (<%= project.members ? project.members.length : 0 %>)</h4>
+      <div class="member-list">
+        <% if (project.members && project.members.length > 0) { %>
+          <% project.members.forEach(function(member) { %>
+            <div class="member-row">
+              <div class="avatar avatar-sm"><%= (member.name || 'M').charAt(0).toUpperCase() %></div>
+              <div class="member-info">
+                <span class="member-name"><%= member.name || 'Unknown' %></span>
+                <span class="member-email"><%= member.email || '' %></span>
+              </div>
+              <% if (project.owner && member._id && project.owner._id && project.owner._id.toString() !== member._id.toString()) { %>
+                <button type="button" class="btn-icon btn-xs text-danger"
+                  onclick="openConfirmModal('rm-<%= member._id %>', 'Remove this member from the project?')"
+                  title="Remove"><i class="fas fa-times"></i></button>
+                <form id="rm-<%= member._id %>" action="/projects/<%= project._id %>/members/<%= member._id %>/remove" method="POST" style="display:none;"></form>
+              <% } else { %>
+                <span class="owner-badge" title="Owner"><i class="fas fa-crown"></i></span>
+              <% } %>
+            </div>
+          <% }); %>
+        <% } else { %>
+          <p style="font-size:0.85rem;color:var(--text-tertiary);padding:var(--space-3) 0;">No members yet.</p>
+        <% } %>
+      </div>
+      <div class="add-member-form">
+        <h5 style="font-size:0.75rem;font-weight:700;color:var(--text-tertiary);margin-bottom:var(--space-3);text-transform:uppercase;letter-spacing:0.5px;">
+          <i class="fas fa-user-plus"></i> Add Member
+        </h5>
+        <form action="/projects/<%= project._id %>/members" method="POST" class="add-member-row">
+          <input type="email" name="email" class="form-input form-input-sm" placeholder="Email address" required />
+          <button type="submit" class="btn btn-primary btn-sm">Add</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="project-sidebar-card">
+      <h4><i class="fas fa-info-circle"></i> Project Info</h4>
+      <div class="project-info-rows">
+        <div class="info-row">
+          <span class="info-label">Owner</span>
+          <span class="info-value">
+            <% if (project.owner && project.owner.name) { %>
+              <div class="avatar avatar-xs" style="display:inline-flex;"><%= project.owner.name.charAt(0).toUpperCase() %></div>
+              <%= project.owner.name %>
+            <% } else { %><span style="color:var(--text-tertiary);">Unknown</span><% } %>
+          </span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Created</span>
+          <span class="info-value" style="font-size:0.8rem;"><%= new Date(project.createdAt).toLocaleDateString() %></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="project-sidebar-card">
+      <h4><i class="fas fa-download"></i> Export</h4>
+      <div style="display:flex;flex-direction:column;gap:var(--space-2);">
+        <a href="/projects/<%= project._id %>/report" target="_blank" class="btn btn-outline btn-sm btn-block">
+          <i class="fas fa-file-pdf" style="color:#ef4444;"></i> Download PDF
+        </a>
+        <a href="/projects/<%= project._id %>/export" target="_blank" class="btn btn-outline btn-sm btn-block">
+          <i class="fas fa-file-csv" style="color:#10b981;"></i> Export CSV
+        </a>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function toggleTaskDone(taskId, btn) {
+  var f = document.createElement('form');
+  f.method = 'POST'; f.action = '/tasks/' + taskId + '/status';
+  var i = document.createElement('input');
+  i.type = 'hidden'; i.name = 'status';
+  i.value = btn.classList.contains('checked') ? 'todo' : 'done';
+  f.appendChild(i); document.body.appendChild(f); f.submit();
+}
+function toggleGroup(key) {
+  var children = document.getElementById('children-' + key);
+  var header = document.querySelector('#group-' + key + ' .task-tree-header');
+  var icon = header.querySelector('.task-tree-toggle i');
+  var isOpen = children.style.display !== 'none';
+  children.style.display = isOpen ? 'none' : '';
+  icon.className = isOpen ? 'fas fa-chevron-right' : 'fas fa-chevron-down';
+  header.setAttribute('aria-expanded', String(!isOpen));
+}
+
+// Apply dynamic styles from data-* attributes
+document.querySelectorAll('[data-color]').forEach(function(el) {
+  el.style.color = el.getAttribute('data-color');
+});
+document.querySelectorAll('[data-width]').forEach(function(el) {
+  el.style.width = el.getAttribute('data-width') + '%';
+});
+</script>

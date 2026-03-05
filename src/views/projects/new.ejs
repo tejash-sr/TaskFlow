@@ -1,0 +1,53 @@
+﻿<!-- App Header -->
+<div class="app-header">
+  <button class="sidebar-toggle-btn" id="sidebarToggle" aria-label="Toggle Sidebar">
+    <i class="fas fa-bars"></i>
+  </button>
+  <div class="app-header-content">
+    <div>
+      <h1 class="page-title">New Project</h1>
+      <p class="page-subtitle">Set up a new project to group your tasks</p>
+    </div>
+  </div>
+</div>
+
+<div class="form-page-layout">
+  <a href="/projects" class="back-link">
+    <i class="fas fa-arrow-left"></i> Back to Projects
+  </a>
+
+  <% if (typeof error !== 'undefined' && error) { %>
+    <div class="alert alert-error">
+      <i class="fas fa-exclamation-circle"></i> <%= error %>
+    </div>
+  <% } %>
+
+  <div class="form-card">
+    <form action="/projects" method="POST">
+      <div class="form-section">
+        <h3 class="form-section-title">
+          <i class="fas fa-folder-plus"></i> Project Details
+        </h3>
+        <div class="form-group">
+          <label class="form-label" for="name">Project Name <span class="required-star">*</span></label>
+          <input type="text" id="name" name="name" class="form-input"
+            placeholder="e.g. TaskFlow MVP" required />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="description">Description</label>
+          <textarea id="description" name="description" class="form-input" rows="4"
+            placeholder="Describe the project goals, scope, and timeline&hellip;"></textarea>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <a href="/projects" class="btn btn-secondary">
+          <i class="fas fa-times"></i> Cancel
+        </a>
+        <button type="submit" class="btn btn-primary">
+          <i class="fas fa-check"></i> Create Project
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

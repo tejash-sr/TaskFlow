@@ -1,0 +1,132 @@
+﻿<!-- App Header -->
+<div class="app-header">
+  <button class="sidebar-toggle-btn" id="sidebarToggle" aria-label="Toggle Sidebar">
+    <i class="fas fa-bars"></i>
+  </button>
+  <div class="app-header-content">
+    <div>
+      <h1 class="page-title">Projects</h1>
+      <p class="page-subtitle"><%= projects ? projects.length : 0 %> project<%= (!projects || projects.length !== 1) ? 's' : '' %></p>
+    </div>
+    <div class="app-header-actions">
+      <a href="/projects/new" class="btn btn-primary btn-sm">
+        <i class="fas fa-plus"></i> New Project
+      </a>
+    </div>
+  </div>
+</div>
+
+<% if (!projects || projects.length === 0) { %>
+  <div class="empty-state">
+    <i class="fas fa-folder-open"></i>
+    <h3>No projects yet</h3>
+    <p>Create your first project to start organising tasks.</p>
+    <a href="/projects/new" class="btn btn-primary btn-sm">
+      <i class="fas fa-plus"></i> Create Project
+    </a>
+  </div>
+<% } else { %>
+  <div class="projects-grid" style="padding:var(--space-6) var(--space-8);">
+    <% projects.forEach(function(project, idx) {
+      var iconBg = ['#dbeafe','#d1fae5','#ffedd5','#ede9fe','#fce7f3','#ccfbf1'][idx % 6];
+      var iconColor = ['#3b82f6','#10b981','#f97316','#8b5cf6','#ec4899','#14b8a6'][idx % 6];
+    %>
+      <div class="project-card">
+        <div class="project-card-header">
+          <div class="project-card-icon" style="background:<%= iconBg %>;color:<%= iconColor %>;">
+            <i class="fas fa-folder"></i>
+          </div>
+          <div class="task-actions-dropdown" id="proj-dd-<%= project._id %>">
+            <button class="btn-icon btn-xs" type="button"
+              onclick="toggleProjectDropdown('proj-dd-<%= project._id %>')" title="More">
+              <i class="fas fa-ellipsis-h"></i>
+            </button>
+            <div class="dropdown-menu dropdown-menu-right">
+              <a href="/projects/<%= project._id %>" class="dropdown-item">
+                <i class="fas fa-tasks"></i> View Tasks
+              </a>
+              <a href="/tasks/new?project=<%= project._id %>" class="dropdown-item">
+                <i class="fas fa-plus"></i> Add Task
+              </a>
+              <div class="dropdown-divider"></div>
+              <a href="/projects/<%= project._id %>/report" class="dropdown-item" target="_blank">
+                <i class="fas fa-file-pdf" style="color:#ef4444;"></i> PDF Report
+              </a>
+              <a href="/projects/<%= project._id %>/export" class="dropdown-item" target="_blank">
+                <i class="fas fa-file-csv" style="color:#10b981;"></i> Export CSV
+              </a>
+              <div class="dropdown-divider"></div>
+              <button type="button" class="dropdown-item text-danger"
+                data-id="<%= project._id %>"
+                data-name="<%= project.name %>"
+                onclick="confirmDeleteProject(this.dataset.id, this.dataset.name)">
+                <i class="fas fa-trash"></i> Delete Project
+              </button>
+            </div>
+          </div>
+        </div>
+        <h3 class="project-card-title"><a href="/projects/<%= project._id %>" style="color:inherit;text-decoration:none;"><%= project.name %></a></h3>
+        <p class="project-card-desc">
+          <%= project.description ? (project.description.length > 100 ? project.description.substring(0,100)+'...' : project.description) : 'No description provided.' %>
+        </p>
+        <div class="project-card-stats">
+          <div class="project-card-stat">
+            <span><%= project.taskCount || 0 %></span>
+            <span>Tasks</span>
+          </div>
+          <div class="project-card-stat">
+            <span><%= project.members ? project.members.length : 0 %></span>
+            <span>Members</span>
+          </div>
+        </div>
+        <div class="project-card-footer">
+          <div class="project-members">
+            <% if (project.members && project.members.length > 0) { %>
+              <% project.members.slice(0,3).forEach(function(m) { %>
+                <div class="avatar avatar-xs" title="<%= m.name || 'Member' %>">
+                  <%= (m.name || 'M').charAt(0).toUpperCase() %>
+                </div>
+              <% }); %>
+              <% if (project.members.length > 3) { %>
+                <div class="avatar avatar-xs" style="background:var(--color-gray-300);color:var(--color-gray-600);">
+                  +<%= project.members.length - 3 %>
+                </div>
+              <% } %>
+            <% } else { %>
+              <span style="font-size:0.75rem;color:var(--text-tertiary);">No members</span>
+            <% } %>
+          </div>
+          <div class="project-card-actions-row">
+            <a href="/projects/<%= project._id %>/report" class="btn-icon btn-xs" title="PDF Report" target="_blank">
+              <i class="fas fa-file-pdf" style="color:#ef4444;"></i>
+            </a>
+            <a href="/projects/<%= project._id %>/export" class="btn-icon btn-xs" title="Export CSV" target="_blank">
+              <i class="fas fa-file-csv" style="color:#10b981;"></i>
+            </a>
+            <a href="/projects/<%= project._id %>" class="btn btn-ghost btn-sm">
+              View Tasks <i class="fas fa-chevron-right"></i>
+            </a>
+          </div>
+        </div>
+        <form id="del-proj-<%= project._id %>" action="/projects/<%= project._id %>/delete" method="POST" style="display:none;"></form>
+      </div>
+    <% }); %>
+  </div>
+<% } %>
+
+<script>
+function toggleProjectDropdown(id) {
+  var dd = document.getElementById(id);
+  var wasOpen = dd.classList.contains('open');
+  document.querySelectorAll('.task-actions-dropdown.open').forEach(function(d){ d.classList.remove('open'); });
+  if (!wasOpen) dd.classList.add('open');
+}
+document.addEventListener('click', function(e){
+  if (!e.target.closest('.task-actions-dropdown')) {
+    document.querySelectorAll('.task-actions-dropdown.open').forEach(function(d){ d.classList.remove('open'); });
+  }
+});
+function confirmDeleteProject(id, name) {
+  openConfirmModal('del-proj-' + id, 'Delete project "' + name + '"? All its tasks will also be deleted. This cannot be undone.');
+}
+</script>

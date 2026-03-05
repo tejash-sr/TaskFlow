@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title><%= typeof title !== 'undefined' ? title + ' | TaskFlow' : 'TaskFlow' %></title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link rel="stylesheet" href="/css/styles.css" />
+</head>
+<% const _layout = typeof layoutType !== 'undefined' ? layoutType : (typeof user !== 'undefined' && user ? 'app' : 'public'); %>
+<% const _currentPath = typeof currentPath !== 'undefined' ? currentPath : '/'; %>
+<body class="<%= _layout === 'app' ? 'app-page' : (_layout === 'landing' ? 'landing-page' : '') %>">
+
+<% if (_layout === 'app') { %>
+
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <a href="/dashboard" class="sidebar-brand">
+      <div class="brand-icon brand-icon-sm">
+        <i class="fas fa-bolt"></i>
+      </div>
+      <span class="brand-text">Task<span class="brand-accent">Flow</span></span>
+    </a>
+    <button class="sidebar-close" id="sidebarClose">
+      <i class="fas fa-times"></i>
+    </button>
+  </div>
+
+  <div class="sidebar-nav">
+    <div class="sidebar-section">
+      <p class="sidebar-section-title">Main</p>
+      <a href="/dashboard" class="sidebar-link <%= _currentPath === '/dashboard' ? 'active' : '' %>">
+        <i class="fas fa-th-large"></i>
+        <span>Dashboard</span>
+      </a>
+      <a href="/tasks" class="sidebar-link <%= _currentPath.startsWith('/tasks') ? 'active' : '' %>">
+        <i class="fas fa-check-square"></i>
+        <span>My Tasks</span>
+      </a>
+      <a href="/projects" class="sidebar-link <%= _currentPath.startsWith('/projects') ? 'active' : '' %>">
+        <i class="fas fa-folder-open"></i>
+        <span>Projects</span>
+      </a>
+    </div>
+
+    <div class="sidebar-section">
+      <p class="sidebar-section-title">Workspace</p>
+      <a href="/api-docs" class="sidebar-link">
+        <i class="fas fa-book"></i>
+        <span>API Docs</span>
+      </a>
+      <a href="/api/health" class="sidebar-link">
+        <i class="fas fa-heartbeat"></i>
+        <span>Health Check</span>
+      </a>
+    </div>
+  </div>
+
+  <div class="sidebar-footer">
+    <% if (typeof user !== 'undefined' && user) { %>
+    <div class="sidebar-link" style="cursor:default;">
+      <div class="avatar avatar-sm">
+        <span><%= user.name ? user.name.charAt(0).toUpperCase() : 'U' %></span>
+      </div>
+      <span style="font-size:0.85rem;font-weight:600;color:var(--text-primary)"><%= user.name || 'User' %></span>
+    </div>
+    <% } %>
+    <a href="/logout" class="sidebar-link">
+      <i class="fas fa-sign-out-alt"></i>
+      <span>Logout</span>
+    </a>
+  </div>
+</aside>
+
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<div class="app-content">
+  <% if (typeof flash !== 'undefined' && flash) { %>
+    <div class="flash-message flash-<%= flash.type %>" id="flashMessage">
+      <div class="container">
+        <i class="fas fa-<%= flash.type === 'success' ? 'check-circle' : 'exclamation-circle' %>"></i>
+        <%- flash.message %>
+        <button class="flash-close" onclick="this.parentElement.parentElement.remove()"><i class="fas fa-times"></i></button>
+      </div>
+    </div>
+  <% } %>
+  <%- body %>
+</div>
+
+<% } else if (_layout === 'auth') { %>
+
+<nav class="navbar" id="navbar">
+  <div class="container navbar-container">
+    <a href="/" class="navbar-brand">
+      <div class="brand-icon">
+        <i class="fas fa-bolt"></i>
+      </div>
+      <span class="brand-text">Task<span class="brand-accent">Flow</span></span>
+    </a>
+    <div class="navbar-actions">
+      <a href="/login" class="btn btn-ghost">Log In</a>
+      <a href="/signup" class="btn btn-primary btn-glow">
+        Get Started <i class="fas fa-arrow-right"></i>
+      </a>
+    </div>
+  </div>
+</nav>
+
+<main>
+  <% if (typeof flash !== 'undefined' && flash) { %>
+    <div class="container" style="padding-top:var(--space-4)">
+      <div class="alert alert-<%= flash.type %>">
+        <i class="fas fa-<%= flash.type === 'success' ? 'check-circle' : 'exclamation-circle' %>"></i>
+        <%- flash.message %>
+      </div>
+    </div>
+  <% } %>
+  <%- body %>
+</main>
+
+<% } else { %>
+
+<nav class="navbar" id="navbar">
+  <div class="container navbar-container">
+    <a href="/" class="navbar-brand">
+      <div class="brand-icon">
+        <i class="fas fa-bolt"></i>
+      </div>
+      <span class="brand-text">Task<span class="brand-accent">Flow</span></span>
+    </a>
+
+    <button class="navbar-toggle" id="navToggle" aria-label="Toggle navigation">
+      <span class="hamburger"></span>
+    </button>
+
+    <div class="navbar-menu" id="navMenu">
+      <ul class="navbar-nav">
+        <% if (typeof user !== 'undefined' && user) { %>
+          <li class="nav-item">
+            <a href="/dashboard" class="nav-link <%= _currentPath === '/dashboard' ? 'active' : '' %>">
+              <i class="fas fa-th-large"></i> <span>Dashboard</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="/projects" class="nav-link <%= _currentPath.startsWith('/projects') ? 'active' : '' %>">
+              <i class="fas fa-folder-open"></i> <span>Projects</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="/tasks" class="nav-link <%= _currentPath.startsWith('/tasks') ? 'active' : '' %>">
+              <i class="fas fa-tasks"></i> <span>Tasks</span>
+            </a>
+          </li>
+        <% } else { %>
+          <li class="nav-item"><a href="/#features" class="nav-link">Features</a></li>
+          <li class="nav-item"><a href="/#how-it-works" class="nav-link">How It Works</a></li>
+        <% } %>
+      </ul>
+
+      <div class="navbar-actions">
+        <% if (typeof user !== 'undefined' && user) { %>
+          <div class="user-dropdown" id="userDropdown">
+            <button class="user-avatar-btn" id="userDropdownBtn">
+              <div class="avatar avatar-sm">
+                <span><%= user.name ? user.name.charAt(0).toUpperCase() : 'U' %></span>
+              </div>
+              <span class="user-name"><%= user.name || 'User' %></span>
+              <i class="fas fa-chevron-down"></i>
+            </button>
+            <div class="dropdown-menu" id="dropdownMenu">
+              <div class="dropdown-header">
+                <div class="avatar avatar-md">
+                  <span><%= user.name ? user.name.charAt(0).toUpperCase() : 'U' %></span>
+                </div>
+                <div>
+                  <p class="dropdown-user-name"><%= user.name %></p>
+                  <p class="dropdown-user-email"><%= user.email %></p>
+                </div>
+              </div>
+              <div class="dropdown-divider"></div>
+              <a href="/logout" class="dropdown-item dropdown-item-danger">
+                <i class="fas fa-sign-out-alt"></i> Logout
+              </a>
+            </div>
+          </div>
+        <% } else { %>
+          <a href="/login" class="btn btn-ghost">Log In</a>
+          <a href="/signup" class="btn btn-primary btn-glow">
+            Get Started <i class="fas fa-arrow-right"></i>
+          </a>
+        <% } %>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<main>
+  <% if (typeof flash !== 'undefined' && flash) { %>
+    <div class="flash-message flash-<%= flash.type %>" id="flashMessage">
+      <div class="container">
+        <i class="fas fa-<%= flash.type === 'success' ? 'check-circle' : 'exclamation-circle' %>"></i>
+        <%- flash.message %>
+        <button class="flash-close" onclick="this.parentElement.parentElement.remove()"><i class="fas fa-times"></i></button>
+      </div>
+    </div>
+  <% } %>
+  <%- body %>
+</main>
+
+<footer class="footer">
+  <div class="footer-content">
+    <div class="container">
+      <div class="footer-grid">
+        <div>
+          <div class="footer-logo">
+            <div class="brand-icon brand-icon-sm"><i class="fas fa-bolt"></i></div>
+            <span class="brand-text">Task<span class="brand-accent">Flow</span></span>
+          </div>
+          <p class="footer-description">A production-grade task management API built with Node.js, TypeScript, MongoDB, GraphQL &amp; Socket.io.</p>
+          <div class="footer-social">
+            <a href="/api-docs" class="social-link" title="API Docs"><i class="fas fa-book"></i></a>
+            <a href="/api/health" class="social-link" title="Health"><i class="fas fa-heartbeat"></i></a>
+          </div>
+        </div>
+        <div class="footer-links">
+          <h4>Navigation</h4>
+          <ul>
+            <li><a href="/login">Sign In</a></li>
+            <li><a href="/signup">Get Started</a></li>
+            <li><a href="/forgot-password">Reset Password</a></li>
+          </ul>
+        </div>
+        <div class="footer-links">
+          <h4>Developers</h4>
+          <ul>
+            <li><a href="/api-docs">API Docs</a></li>
+            <li><a href="/api/health">Health Check</a></li>
+            <li><a href="/graphql">GraphQL</a></li>
+          </ul>
+        </div>
+        <div class="footer-links">
+          <h4>Features</h4>
+          <ul>
+            <li><a href="/#features">Task Management</a></li>
+            <li><a href="/#features">Real-time Updates</a></li>
+            <li><a href="/#features">JWT Auth</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; <%= new Date().getFullYear() %> TaskFlow. All rights reserved.</p>
+        <div class="footer-bottom-links">
+          <a href="/api-docs">API Docs</a>
+          <a href="/api/health">Health</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</footer>
+<% } %>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<div class="confirm-modal-backdrop" id="confirmModalBackdrop" style="display:none;">
+  <div class="confirm-modal">
+    <div class="confirm-modal-icon"><i class="fas fa-exclamation-triangle"></i></div>
+    <h3 class="confirm-modal-title">Are you sure?</h3>
+    <p class="confirm-modal-message" id="confirmModalMessage">This action cannot be undone.</p>
+    <div class="confirm-modal-actions">
+      <button class="btn btn-secondary" id="confirmModalCancel">Cancel</button>
+      <button class="btn btn-danger-outline" id="confirmModalConfirm">
+        <i class="fas fa-trash"></i> Delete
+      </button>
+    </div>
+  </div>
+</div>
+
+<script src="/js/app.js"></script>
+
+<!-- Dark mode toggle -->
+<button class="theme-toggle-btn" id="themeToggle" title="Toggle dark mode" aria-label="Toggle dark mode">
+  <i class="fas fa-moon" id="themeIcon"></i>
+</button>
+
+<script>
+(function() {
+  // Restore saved theme immediately to avoid flash
+  var saved = localStorage.getItem('tf-theme') || 'light';
+  document.documentElement.setAttribute('data-theme', saved);
+  var icon = document.getElementById('themeIcon');
+  if (icon) icon.className = saved === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+})();
+
+document.getElementById('themeToggle').addEventListener('click', function() {
+  var current = document.documentElement.getAttribute('data-theme') || 'light';
+  var next = current === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('tf-theme', next);
+  var icon = document.getElementById('themeIcon');
+  if (icon) icon.className = next === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+});
+
+// Toast helper — call window.showToast('message', 'success'|'error'|'warning')
+window.showToast = function(message, type) {
+  type = type || 'success';
+  var icons = { success: 'fa-check-circle', error: 'fa-times-circle', warning: 'fa-exclamation-triangle' };
+  var container = document.getElementById('toastContainer');
+  var toast = document.createElement('div');
+  toast.className = 'toast toast-' + type;
+  toast.innerHTML =
+    '<i class="fas ' + (icons[type] || icons.success) + ' toast-icon"></i>' +
+    '<span class="toast-message">' + message + '</span>' +
+    '<button class="toast-close" onclick="this.parentElement.remove()">&times;</button>';
+  container.appendChild(toast);
+  requestAnimationFrame(function() { toast.classList.add('show'); });
+  setTimeout(function() {
+    toast.classList.remove('show');
+    setTimeout(function() { toast.remove(); }, 350);
+  }, 4000);
+};
+</script>
+</body>
+</html>

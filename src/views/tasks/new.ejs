@@ -1,0 +1,103 @@
+﻿<!-- App Header -->
+<div class="app-header">
+  <button class="sidebar-toggle-btn" id="sidebarToggle" aria-label="Toggle Sidebar">
+    <i class="fas fa-bars"></i>
+  </button>
+  <div class="app-header-content">
+    <div>
+      <h1 class="page-title">New Task</h1>
+      <p class="page-subtitle">Fill in the details to create a new task</p>
+    </div>
+  </div>
+</div>
+
+<div class="form-page-layout">
+  <a href="/tasks" class="back-link">
+    <i class="fas fa-arrow-left"></i> Back to Tasks
+  </a>
+
+  <% if (typeof error !== 'undefined' && error) { %>
+    <div class="alert alert-error">
+      <i class="fas fa-exclamation-circle"></i> <%= error %>
+    </div>
+  <% } %>
+
+  <div class="form-card">
+    <form action="/tasks" method="POST">
+      <!-- Basic Info -->
+      <div class="form-section">
+        <h3 class="form-section-title">
+          <i class="fas fa-info-circle"></i> Basic Information
+        </h3>
+        <div class="form-group">
+          <label class="form-label" for="title">Title <span class="required-star">*</span></label>
+          <input type="text" id="title" name="title" class="form-input" placeholder="e.g. Fix login bug"
+            value="<%= typeof formData !== 'undefined' && formData.title ? formData.title : '' %>" required />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="description">Description <span class="required-star">*</span></label>
+          <textarea id="description" name="description" class="form-input" rows="4"
+            placeholder="Describe the task in detail&hellip;"><%= typeof formData !== 'undefined' && formData.description ? formData.description : '' %></textarea>
+        </div>
+      </div>
+
+      <!-- Task Properties -->
+      <div class="form-section">
+        <h3 class="form-section-title">
+          <i class="fas fa-sliders-h"></i> Task Properties
+        </h3>
+        <div class="form-row-2">
+          <div class="form-group">
+            <label class="form-label" for="status">Status</label>
+            <select id="status" name="status" class="form-select">
+              <% ['todo', 'in-progress', 'review', 'done'].forEach(function(s) { %>
+                <option value="<%= s %>"><%= s.charAt(0).toUpperCase() + s.slice(1) %></option>
+              <% }); %>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="priority">Priority</label>
+            <select id="priority" name="priority" class="form-select">
+              <% ['low', 'medium', 'high', 'urgent'].forEach(function(p) { %>
+                <option value="<%= p %>" <%= p === 'medium' ? 'selected' : '' %>>
+                  <%= p.charAt(0).toUpperCase() + p.slice(1) %>
+                </option>
+              <% }); %>
+            </select>
+          </div>
+        </div>
+        <div class="form-row-2">
+          <div class="form-group">
+            <label class="form-label" for="project">Project</label>
+            <select id="project" name="project" class="form-select">
+              <option value="">&mdash; No Project &mdash;</option>
+              <% if (typeof projects !== 'undefined') { projects.forEach(function(p) { %>
+                <option value="<%= p._id %>" <%= (typeof preselectedProject !== 'undefined' && preselectedProject && p._id && p._id.toString() === preselectedProject) || (typeof formData !== 'undefined' && formData.project && p._id && p._id.toString() === formData.project) ? 'selected' : '' %>><%= p.name %></option>
+              <% }); } %>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="dueDate">Due Date</label>
+            <input type="date" id="dueDate" name="dueDate" class="form-input" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="tags">
+            Tags <span style="font-weight:400;color:var(--text-tertiary);font-size:0.8rem;">(comma-separated)</span>
+          </label>
+          <input type="text" id="tags" name="tags" class="form-input" placeholder="e.g. bug, frontend, urgent" />
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="form-actions">
+        <a href="/tasks" class="btn btn-secondary">
+          <i class="fas fa-times"></i> Cancel
+        </a>
+        <button type="submit" class="btn btn-primary btn-sm">
+          <i class="fas fa-check"></i> Create Task
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

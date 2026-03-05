@@ -1,0 +1,215 @@
+<!-- App Header -->
+<div class="app-header">
+  <button class="sidebar-toggle-btn" id="sidebarToggle" aria-label="Toggle Sidebar">
+    <i class="fas fa-bars"></i>
+  </button>
+  <div class="app-header-content">
+    <div>
+      <h1 class="page-title">Dashboard</h1>
+      <p class="page-subtitle">Welcome back! Here&rsquo;s what&rsquo;s happening.</p>
+    </div>
+    <div class="app-header-actions">
+      <a href="/tasks/new" class="btn btn-primary btn-sm">
+        <i class="fas fa-plus"></i> New Task
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- Dashboard Content -->
+<div class="dashboard-content">
+  <!-- Stats Grid -->
+  <div class="stats-grid">
+    <div class="stat-card stat-card-blue">
+      <div class="stat-card-icon">
+        <i class="fas fa-tasks"></i>
+      </div>
+      <div class="stat-card-content">
+        <span class="stat-card-value"><%= stats.total %></span>
+        <span class="stat-card-label">Total Tasks</span>
+      </div>
+      <div class="stat-card-trend stat-trend-up">
+        <i class="fas fa-arrow-up"></i> All
+      </div>
+    </div>
+    <div class="stat-card stat-card-orange">
+      <div class="stat-card-icon">
+        <i class="fas fa-spinner"></i>
+      </div>
+      <div class="stat-card-content">
+        <span class="stat-card-value"><%= stats.inProgress %></span>
+        <span class="stat-card-label">In Progress</span>
+      </div>
+    </div>
+    <div class="stat-card stat-card-green">
+      <div class="stat-card-icon">
+        <i class="fas fa-check-circle"></i>
+      </div>
+      <div class="stat-card-content">
+        <span class="stat-card-value"><%= stats.done %></span>
+        <span class="stat-card-label">Completed</span>
+      </div>
+      <div class="stat-card-trend stat-trend-up">
+        <i class="fas fa-arrow-up"></i> Done
+      </div>
+    </div>
+    <div class="stat-card stat-card-red">
+      <div class="stat-card-icon">
+        <i class="fas fa-exclamation-triangle"></i>
+      </div>
+      <div class="stat-card-content">
+        <span class="stat-card-value"><%= stats.overdue %></span>
+        <span class="stat-card-label">Overdue</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Grid -->
+  <div class="dashboard-grid">
+    <!-- Recent Tasks -->
+    <div class="dashboard-card">
+      <div class="card-header">
+        <h3 class="card-title">
+          <i class="fas fa-list-check"></i> Recent Tasks
+        </h3>
+        <a href="/tasks" class="card-link">View all <i class="fas fa-chevron-right"></i></a>
+      </div>
+      <% if (!tasks || tasks.length === 0) { %>
+        <div class="empty-state">
+          <i class="fas fa-clipboard-list"></i>
+          <h3>No tasks yet</h3>
+          <p>Create your first task to get started</p>
+          <a href="/tasks/new" class="btn btn-primary btn-sm">
+            <i class="fas fa-plus"></i> Create Task
+          </a>
+        </div>
+      <% } else { %>
+        <%
+          /* Group tasks by project */
+          var projectMap = {};
+          var projectOrder = [];
+          tasks.forEach(function(task) {
+            var key = task.project ? String(task.project._id || task.project) : '__none__';
+            var label = task.project ? (task.project.name || 'Project') : 'No Project';
+            if (!projectMap[key]) {
+              projectMap[key] = { label: label, id: key, tasks: [] };
+              projectOrder.push(key);
+            }
+            projectMap[key].tasks.push(task);
+          });
+        %>
+        <div class="task-tree" style="padding:0 var(--space-2);">
+          <% projectOrder.forEach(function(pKey, gi) {
+            var group = projectMap[pKey];
+          %>
+            <div class="task-tree-group" id="dash-group-<%= gi %>">
+              <button type="button" class="task-tree-header"
+                onclick="toggleDashGroup(<%= gi %>)" aria-expanded="true">
+                <span class="task-tree-toggle"><i class="fas fa-chevron-down"></i></span>
+                <i class="fas fa-folder" style="color:var(--color-primary);width:14px;"></i>
+                <span class="task-tree-group-label"><%= group.label %></span>
+                <span class="task-tree-count"><%= group.tasks.length %></span>
+                <% if (pKey !== '__none__') { %>
+                  <a href="/projects/<%= pKey %>" class="btn-icon btn-xs"
+                    style="margin-left:auto;" title="View project"
+                    onclick="event.stopPropagation()">
+                    <i class="fas fa-external-link-alt" style="font-size:0.65rem;"></i>
+                  </a>
+                <% } %>
+              </button>
+              <div class="task-tree-children" id="dash-children-<%= gi %>">
+                <% group.tasks.forEach(function(task) { %>
+                  <div class="task-tree-item">
+                    <span class="task-tree-line"></span>
+                    <button
+                      class="task-status-check <%= task.status === 'done' ? 'checked' : '' %>"
+                      onclick="toggleTaskDoneGlobal('<%= task._id %>', this)"
+                      type="button"
+                      title="<%= task.status === 'done' ? 'Mark todo' : 'Mark done' %>">
+                      <% if (task.status === 'done') { %><i class="fas fa-check"></i><% } %>
+                    </button>
+                    <a href="/tasks/<%= task._id %>"
+                      class="task-tree-title <%= task.status === 'done' ? 'task-completed' : '' %>">
+                      <%= task.title %>
+                    </a>
+                    <div class="task-tree-meta">
+                      <span class="badge badge-<%= task.priority %>"><%= task.priority %></span>
+                      <% if (task.dueDate) { %>
+                        <span class="task-tree-due" style="font-size:0.75rem;color:var(--text-tertiary);">
+                          <i class="fas fa-calendar"></i> <%= new Date(task.dueDate).toLocaleDateString() %>
+                        </span>
+                      <% } %>
+                    </div>
+                  </div>
+                <% }); %>
+              </div>
+            </div>
+          <% }); %>
+        </div>
+      <% } %>
+    </div>
+
+
+    <!-- Sidebar cards -->
+    <div style="display:flex;flex-direction:column;gap:var(--space-6);">
+      <!-- Quick Actions -->
+      <div class="dashboard-card">
+        <div class="card-header">
+          <h3 class="card-title"><i class="fas fa-bolt"></i> Quick Actions</h3>
+        </div>
+        <div class="card-body" style="display:flex;flex-direction:column;gap:var(--space-2);">
+          <a href="/tasks/new" class="btn btn-primary btn-sm">
+            <i class="fas fa-plus"></i> Create Task
+          </a>
+          <a href="/projects/new" class="btn btn-secondary btn-sm">
+            <i class="fas fa-folder-plus"></i> Create Project
+          </a>
+          <a href="/tasks/export/pdf" target="_blank" class="btn btn-secondary btn-sm">
+            <i class="fas fa-file-pdf" style="color:#ef4444;"></i> Export PDF Report
+          </a>
+          <a href="/tasks/export/csv" target="_blank" class="btn btn-secondary btn-sm">
+            <i class="fas fa-file-csv" style="color:#10b981;"></i> Export CSV
+          </a>
+        </div>
+      </div>
+
+      <!-- Developer Tools -->
+      <div class="dashboard-card">
+        <div class="card-header">
+          <h3 class="card-title"><i class="fas fa-code"></i> Developer Tools</h3>
+        </div>
+        <div class="card-body" style="display:flex;flex-direction:column;gap:var(--space-2);">
+          <a href="/api-docs" target="_blank" class="btn btn-secondary btn-sm">
+            <i class="fas fa-book"></i> Swagger API Docs
+          </a>
+          <a href="/graphql" target="_blank" class="btn btn-secondary btn-sm">
+            <i class="fas fa-project-diagram"></i> GraphQL Playground
+          </a>
+          <a href="/api/health" target="_blank" class="btn btn-secondary btn-sm">
+            <i class="fas fa-heartbeat"></i> Health Check
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleTaskDoneGlobal(taskId, btn) {
+  var f = document.createElement('form');
+  f.method = 'POST'; f.action = '/tasks/' + taskId + '/status';
+  var i = document.createElement('input');
+  i.type = 'hidden'; i.name = 'status';
+  i.value = btn.classList.contains('checked') ? 'todo' : 'done';
+  f.appendChild(i); document.body.appendChild(f); f.submit();
+}
+function toggleDashGroup(gi) {
+  var children = document.getElementById('dash-children-' + gi);
+  var header = children.previousElementSibling;
+  var icon = header.querySelector('.task-tree-toggle i');
+  var open = children.style.display !== 'none';
+  children.style.display = open ? 'none' : '';
+  if (icon) { icon.className = open ? 'fas fa-chevron-right' : 'fas fa-chevron-down'; }
+  header.setAttribute('aria-expanded', String(!open));
+}
+</script>
