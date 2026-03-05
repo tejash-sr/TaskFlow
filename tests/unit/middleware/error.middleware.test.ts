@@ -2,7 +2,9 @@ import { Request, Response, NextFunction } from 'express';
 import { errorHandler } from '@/middleware/error.middleware';
 import { AppError } from '@/utils/AppError';
 
-const mockRequest = () => ({} as Request);
+const mockRequest = () => ({
+  get: jest.fn().mockReturnValue('Mozilla/5.0'),
+} as unknown as Request);
 const mockNext = jest.fn() as NextFunction;
 
 function mockResponse(): Response {
