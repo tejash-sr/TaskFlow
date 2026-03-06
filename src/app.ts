@@ -40,11 +40,11 @@ export function createApp(testMiddleware?: RequestHandler[]): Application {
   const app = express();
 
   app.set('view engine', 'ejs');
-  app.set('views', path.join(__dirname, 'views'));
+  app.set('views', path.join(__dirname, '..', 'views'));
   app.set('layout', 'layout');
   app.use(ejsLayouts);
 
-  app.use(express.static(path.join(process.cwd(), 'public')));
+  app.use(express.static(path.join(__dirname, '..', 'public')));
 
   app.use(helmet({ contentSecurityPolicy: false }));
   app.use(requestId);
