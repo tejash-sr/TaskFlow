@@ -1,7 +1,6 @@
 import Comment from '@/models/Comment.model';
 import Task from '@/models/Task.model';
 import User from '@/models/User.model';
-import Project from '@/models/Project.model';
 import { AppError } from '@/utils/AppError';
 import { IComment } from '@/types/models.types';
 import { enqueueEmail } from '@/queues/emailQueue';

@@ -13,6 +13,7 @@ import { env } from '@/config/env';
 import { errorHandler } from '@/middleware/error.middleware';
 import { AppError } from '@/utils/AppError';
 import { swaggerSpec } from '@/config/swagger';
+import { logger } from '@/utils/logger';
 import { requestId } from '@/middleware/requestId.middleware';
 import healthRouter from '@/routes/health.routes';
 import authRouter from '@/routes/auth.routes';
@@ -88,12 +89,12 @@ export function createApp(testMiddleware?: RequestHandler[]): Application {
   const publicPath = resolvePublicPath();
   
   if (!env.isTest) {
-    console.log(`[EJS] cwd: ${process.cwd()}`);
-    console.log(`[EJS] __dirname: ${__dirname}`);
-    console.log(`[EJS] views path: ${viewsPath}`);
-    console.log(`[EJS] public path: ${publicPath}`);
-    console.log(`[EJS] views exist: ${fs.existsSync(viewsPath)}`);
-    console.log(`[EJS] public exist: ${fs.existsSync(publicPath)}`);
+    logger.debug(`[EJS] cwd: ${process.cwd()}`);
+    logger.debug(`[EJS] __dirname: ${__dirname}`);
+    logger.debug(`[EJS] views path: ${viewsPath}`);
+    logger.debug(`[EJS] public path: ${publicPath}`);
+    logger.debug(`[EJS] views exist: ${fs.existsSync(viewsPath)}`);
+    logger.debug(`[EJS] public exist: ${fs.existsSync(publicPath)}`);
   }
 
   app.set('view engine', 'ejs');
