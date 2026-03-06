@@ -48,6 +48,18 @@ const userSchema = new Schema<IUser, IUserModel>(
       type: Date,
       select: false,
     },
+    emailVerified: {
+      type: Boolean,
+      default: false,
+    },
+    emailVerificationToken: {
+      type: String,
+      select: false,
+    },
+    emailVerificationExpires: {
+      type: Date,
+      select: false,
+    },
   },
   { timestamps: true },
 );
@@ -69,6 +81,13 @@ userSchema.methods.generateResetToken = function (this: IUser): string {
   const token = crypto.randomBytes(RESET_TOKEN_BYTES).toString('hex');
   this.resetToken = crypto.createHash('sha256').update(token).digest('hex');
   this.resetTokenExp = new Date(Date.now() + RESET_TOKEN_EXPIRY_HOURS * 60 * 60 * 1000);
+  return token;
+};
+
+userSchema.methods.generateEmailVerificationToken = function (this: IUser): string {
+  const token = crypto.randomBytes(RESET_TOKEN_BYTES).toString('hex');
+  this.emailVerificationToken = crypto.createHash('sha256').update(token).digest('hex');
+  this.emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
   return token;
 };
 

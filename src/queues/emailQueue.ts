@@ -8,6 +8,13 @@ export interface WelcomeEmailJob {
   name: string;
 }
 
+export interface VerifyEmailJob {
+  type: 'verifyEmail';
+  to: string;
+  name: string;
+  verifyUrl: string;
+}
+
 export interface PasswordResetEmailJob {
   type: 'passwordReset';
   to: string;
@@ -21,7 +28,7 @@ export interface TaskAssignedEmailJob {
   taskId: string;
 }
 
-export type EmailJobData = WelcomeEmailJob | PasswordResetEmailJob | TaskAssignedEmailJob;
+export type EmailJobData = WelcomeEmailJob | VerifyEmailJob | PasswordResetEmailJob | TaskAssignedEmailJob;
 
 let _queue: Queue<EmailJobData> | null = null;
 

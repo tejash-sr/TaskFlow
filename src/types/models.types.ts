@@ -14,10 +14,14 @@ export interface IUser extends Document {
   avatar?: string;
   resetToken?: string;
   resetTokenExp?: Date;
+  emailVerified: boolean;
+  emailVerificationToken?: string;
+  emailVerificationExpires?: Date;
   createdAt: Date;
   updatedAt: Date;
   comparePassword(candidate: string): Promise<boolean>;
   generateResetToken(): string;
+  generateEmailVerificationToken(): string;
 }
 
 export interface IAttachment {

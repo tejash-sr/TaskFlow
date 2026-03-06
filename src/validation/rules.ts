@@ -47,6 +47,14 @@ export const resetPasswordValidation = [
     .isLength({ min: 8 }).withMessage('Password must be at least 8 characters'),
 ];
 
+export const resendVerificationValidation = [
+  body('email')
+    .trim()
+    .notEmpty().withMessage('Email is required')
+    .isEmail().withMessage('Invalid email format')
+    .normalizeEmail(),
+];
+
 
 export const createTaskValidation = [
   body('title')

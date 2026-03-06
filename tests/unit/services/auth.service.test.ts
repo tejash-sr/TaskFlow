@@ -11,20 +11,30 @@ const MockedUser = User as jest.Mocked<typeof User>;
 const makeUser = (overrides: Partial<{
   _id: Types.ObjectId;
   email: string;
+  name: string;
   role: string;
   comparePassword: jest.Mock;
   generateResetToken: jest.Mock;
+  generateEmailVerificationToken: jest.Mock;
   resetToken: string | undefined;
   resetTokenExp: Date | undefined;
+  emailVerified: boolean;
+  emailVerificationToken: string | undefined;
+  emailVerificationExpires: Date | undefined;
   save: jest.Mock;
 }> = {}) => ({
   _id: new Types.ObjectId(),
   email: 'user@test.com',
+  name: 'Test User',
   role: 'user',
   comparePassword: jest.fn().mockResolvedValue(true),
   generateResetToken: jest.fn().mockReturnValue('raw-reset-token'),
+  generateEmailVerificationToken: jest.fn().mockReturnValue('raw-verify-token'),
   resetToken: undefined,
   resetTokenExp: undefined,
+  emailVerified: false,
+  emailVerificationToken: undefined,
+  emailVerificationExpires: undefined,
   save: jest.fn().mockResolvedValue(undefined),
   ...overrides,
 });
