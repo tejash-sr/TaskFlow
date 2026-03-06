@@ -84,6 +84,12 @@ export async function enqueueEmail(data: EmailJobData): Promise<void> {
   try {
     await getEmailQueue().add(data.type, data);
   } catch {
-    process.stderr.write(`[EmailQueue] Redis unavailable — email job skipped (${data.type})\n`);
+    // BUG-09 fix: Redis unavailable — process email directly so emails still send
+    try {
+      const { processEmailDirect } = await import('@/workers/emailWorker');
+      await processEmailDirect(data);
+    } catch (fallbackErr) {
+      process.stderr.write(`[EmailQueue] Fallback direct send also failed (${data.type}): ${String(fallbackErr)}\n`);
+    }
   }
 }

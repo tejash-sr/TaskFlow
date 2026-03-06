@@ -9,6 +9,7 @@ import {
   verifyEmail,
   resendVerification,
   getMe,
+  updateMe,
   uploadAvatar,
   deleteAvatar,
 } from '@/controllers/auth.controller';
@@ -228,6 +229,8 @@ router.post('/resend-verification', validate(forgotPasswordValidation), resendVe
  *         description: Unauthorized
  */
 router.get('/me', isAuth, getMe);
+// MISSING-01: PUT /api/auth/me for profile update via REST API
+router.put('/me', isAuth, updateMe);
 
 /**
  * @openapi

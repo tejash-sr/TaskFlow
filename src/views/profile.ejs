@@ -169,16 +169,17 @@ async function previewAndUploadAvatar(input) {
   formData.append('avatar', file);
 
   try {
-    const res = await fetch('/api/auth/me/avatar', {
-      method: 'PUT',
-      headers: { 'Authorization': `Bearer ${getToken()}` },
+    // BUG-03 fix: use web route with cookie auth — httpOnly cookie is sent automatically
+    const res = await fetch('/profile/avatar', {
+      method: 'POST',
       body: formData,
+      credentials: 'same-origin',
     });
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
     if (res.ok) {
       showToast('Profile picture updated!', 'success');
     } else {
-      showToast(data.message || 'Upload failed', 'error');
+      showToast(data['message'] || 'Upload failed', 'error');
     }
   } catch {
     showToast('Network error uploading avatar', 'error');
@@ -188,9 +189,10 @@ async function previewAndUploadAvatar(input) {
 async function removeAvatar() {
   if (!confirm('Remove your profile picture?')) return;
   try {
-    const res = await fetch('/api/auth/me/avatar', {
+    // BUG-03 fix: use web route with cookie auth
+    const res = await fetch('/profile/avatar', {
       method: 'DELETE',
-      headers: { 'Authorization': `Bearer ${getToken()}` },
+      credentials: 'same-origin',
     });
     if (res.ok) {
       const prev = document.getElementById('avatarPreview');

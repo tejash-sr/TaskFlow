@@ -31,7 +31,7 @@ const apiLimiter = rateLimit({
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 20,
+  max: 5,  // Exercise spec: 5 attempts per 15 minutes
   standardHeaders: true,
   legacyHeaders: false,
   message: { status: 'error', message: 'Too many auth requests, please try again later' },

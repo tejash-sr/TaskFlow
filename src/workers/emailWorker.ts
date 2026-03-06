@@ -68,6 +68,11 @@ async function processEmailJob(job: Job<EmailJobData>): Promise<void> {
   }
 }
 
+// BUG-09 fix: exported for direct fallback when Redis/BullMQ unavailable
+export async function processEmailDirect(data: EmailJobData): Promise<void> {
+  return processEmailJob({ data } as Job<EmailJobData>);
+}
+
 export function startEmailWorker(): Worker<EmailJobData> {
   const worker = new Worker<EmailJobData>('email', processEmailJob, {
     connection: redisConnection,

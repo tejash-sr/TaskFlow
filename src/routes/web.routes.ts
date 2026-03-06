@@ -5,6 +5,7 @@ import projectService from '@/services/project.service';
 import commentService from '@/services/comment.service';
 import { getProjectReport, exportProjectCsv } from '@/controllers/project.controller';
 import { exportTasksPdf, exportTasksCsv } from '@/controllers/upload.controller';
+import { uploadAvatar, deleteAvatar } from '@/controllers/auth.controller';
 import { upload } from '@/config/multer';
 import { verifyAccessToken } from '@/utils/tokenUtils';
 import { blacklistToken } from '@/utils/tokenBlacklist';
@@ -104,10 +105,11 @@ router.post('/login', async (req: Request, res: Response) => {
   const { email, password } = req.body as { email: string; password: string };
   try {
     const { tokens } = await authService.login({ email, password });
+    // BUG-07 fix: 24-hour cookie so users stay logged in
     res.cookie('tf_token', tokens.accessToken, {
       httpOnly: true,
       sameSite: 'lax',
-      maxAge: 15 * 60 * 1000,
+      maxAge: 24 * 60 * 60 * 1000,
     });
     res.redirect('/dashboard');
   } catch (err) {
@@ -126,13 +128,18 @@ router.get('/signup', (req: Request, res: Response) => {
 });
 
 router.post('/signup', async (req: Request, res: Response) => {
-  const { name, email, password } = req.body as { name: string; email: string; password: string };
+  const { name, email, password, confirmPassword } = req.body as { name: string; email: string; password: string; confirmPassword: string };
   try {
+    // BUG-06 fix: validate confirmPassword server-side
+    if (!confirmPassword || password !== confirmPassword) {
+      throw new Error('Passwords do not match');
+    }
     const { tokens } = await authService.signup({ name, email, password });
+    // BUG-07 fix: cookie max-age 24h so users stay logged in
     res.cookie('tf_token', tokens.accessToken, {
       httpOnly: true,
       sameSite: 'lax',
-      maxAge: 15 * 60 * 1000,
+      maxAge: 24 * 60 * 60 * 1000,
     });
     res.redirect('/dashboard');
   } catch (err) {
@@ -269,14 +276,19 @@ router.post('/resend-verification', async (req: Request, res: Response) => {
 router.get('/profile', requireWebAuth, async (req: Request, res: Response) => {
   const user = await resolveWebUser(req);
   if (!user) return res.redirect('/login');
-  const User = (await import('@/models/User.model')).default;
-  const dbUser = await User.findById(user.id).lean();
+  const UserModel = (await import('@/models/User.model')).default;
+  const dbUser = await UserModel.findById(user.id).lean();
+  // BUG-04 fix: spread dbUser as the base so createdAt/emailVerified are accessible in template
   renderWithLayout(res, 'profile', {
     title: 'My Profile',
     activePage: 'profile',
     currentPath: '/profile',
-    user,
-    ...(dbUser as object),
+    user: { ...(dbUser as object), id: user.id, role: user.role },
+    flash: req.query.success
+      ? { type: 'success', message: decodeURIComponent(String(req.query.success)) }
+      : req.query.error
+      ? { type: 'error', message: decodeURIComponent(String(req.query.error)) }
+      : undefined,
   });
 });
 
@@ -284,19 +296,67 @@ router.post('/profile/update', requireWebAuth, async (req: Request, res: Respons
   const { name, email } = req.body as { name: string; email: string };
   const UserModel = (await import('@/models/User.model')).default;
   try {
-    await UserModel.findByIdAndUpdate(req.userId, { name: name.trim(), email: email.toLowerCase().trim() });
-    res.redirect('/profile?success=1');
+    const trimmedName = (name || '').trim();
+    const emailLower = (email || '').toLowerCase().trim();
+
+    // BUG-02 fix: validate inputs manually
+    if (!trimmedName || trimmedName.length < 2 || trimmedName.length > 50)
+      throw new Error('Name must be 2–50 characters');
+    if (!/^\S+@\S+\.\S+$/.test(emailLower))
+      throw new Error('Invalid email format');
+
+    // BUG-02 fix: check email uniqueness excluding self
+    const existing = await UserModel.findOne({ email: emailLower, _id: { $ne: req.userId } });
+    if (existing) throw new Error('That email address is already in use by another account');
+
+    // ARCH-01 fix: runValidators to enforce Mongoose schema rules
+    const updated = await UserModel.findByIdAndUpdate(
+      req.userId,
+      { name: trimmedName, email: emailLower },
+      { new: true, runValidators: true },
+    );
+
+    // BUG-02 fix: re-issue JWT cookie so sidebar shows updated name immediately
+    if (updated) {
+      const { signAccessToken } = await import('@/utils/tokenUtils');
+      const newToken = signAccessToken({ userId: req.userId!, role: updated.role });
+      res.cookie('tf_token', newToken, { httpOnly: true, sameSite: 'lax', maxAge: 24 * 60 * 60 * 1000 });
+    }
+    res.redirect('/profile?success=Profile+updated+successfully');
   } catch (err) {
-    const user = await resolveWebUser(req);
-    const dbUser = await UserModel.findById(req.userId).lean();
-    renderWithLayout(res, 'profile', {
-      title: 'My Profile',
-      activePage: 'profile',
-      currentPath: '/profile',
-      user,
-      ...(dbUser as object),
-      flash: { type: 'error', message: (err as Error).message },
-    });
+    res.redirect('/profile?error=' + encodeURIComponent((err as Error).message));
+  }
+});
+
+// BUG-03 fix: avatar upload via form POST using cookie auth (httpOnly cookie can't be read by JS)
+router.post('/profile/avatar', requireWebAuth, upload.single('avatar'), uploadAvatar);
+router.delete('/profile/avatar', requireWebAuth, deleteAvatar);
+
+// UI-03 fix: inline change-password form
+router.post('/profile/change-password', requireWebAuth, async (req: Request, res: Response) => {
+  const { currentPassword, newPassword, confirmPassword } = req.body as {
+    currentPassword: string;
+    newPassword: string;
+    confirmPassword: string;
+  };
+  try {
+    if (!currentPassword) throw new Error('Current password is required');
+    if (!newPassword || newPassword.length < 8) throw new Error('New password must be at least 8 characters');
+    if (newPassword !== confirmPassword) throw new Error('Passwords do not match');
+
+    const UserModel = (await import('@/models/User.model')).default;
+    const user = await UserModel.findById(req.userId).select('+password');
+    if (!user) return res.redirect('/login');
+
+    const valid = await user.comparePassword(currentPassword);
+    if (!valid) throw new Error('Current password is incorrect');
+
+    user.password = newPassword;
+    await user.save();
+
+    res.redirect('/profile?success=Password+changed+successfully');
+  } catch (err) {
+    res.redirect('/profile?error=' + encodeURIComponent((err as Error).message));
   }
 });
 
@@ -374,7 +434,7 @@ router.get('/tasks/new', requireWebAuth, async (req: Request, res: Response) => 
 
 router.post('/tasks', requireWebAuth, async (req: Request, res: Response) => {
   const user = (await resolveWebUser(req))!;
-  const { title, description, status, priority, project, dueDate, tags } = req.body as Record<string, string>;
+  const { title, description, status, priority, project, dueDate, tags, assignee } = req.body as Record<string, string>;
   try {
     if (!project) throw new Error('Please select a project for the task');
     const tagsArray = tags ? tags.split(',').map((t) => t.trim()).filter(Boolean) : [];
@@ -387,7 +447,8 @@ router.post('/tasks', requireWebAuth, async (req: Request, res: Response) => {
         project,
         dueDate: dueDate || undefined,
         tags: tagsArray,
-        assignee: user.id,
+        // UI-05 fix: use selected assignee or default to self
+        assignee: assignee || user.id,
       },
       user.id,
     );

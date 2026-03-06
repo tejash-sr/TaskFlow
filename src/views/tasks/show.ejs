@@ -283,6 +283,24 @@ function updateFileName(input) {
     <!-- Attachments -->
     <div class="task-sidebar-card">
       <h4><i class="fas fa-paperclip"></i> Attachments</h4>
+      <!-- BUG-10 fix: show existing attachments with download links -->
+      <% if (task.attachments && task.attachments.length > 0) { %>
+        <ul style="list-style:none;padding:0;margin:0 0 var(--space-3) 0;">
+          <% task.attachments.forEach(function(att) { %>
+            <li style="display:flex;align-items:center;justify-content:space-between;padding:var(--space-2) 0;border-bottom:1px solid var(--border-color);">
+              <span style="font-size:0.85rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:140px;" title="<%= att.filename %>">
+                <i class="fas fa-file" style="margin-right:4px;color:var(--text-tertiary);"></i><%= att.filename %>
+              </span>
+              <a href="/api/tasks/<%= task._id %>/attachments/<%= att._id %>"
+                 class="btn btn-secondary btn-sm"
+                 style="flex-shrink:0;padding:2px 8px;font-size:0.75rem;"
+                 download="<%= att.filename %>">
+                <i class="fas fa-download"></i>
+              </a>
+            </li>
+          <% }); %>
+        </ul>
+      <% } %>
       <form action="/tasks/<%= task._id %>/attachments" method="POST" enctype="multipart/form-data">
         <div class="form-group">
           <label class="file-upload-label">

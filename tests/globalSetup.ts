@@ -15,10 +15,8 @@ export default async function globalSetup(): Promise<void> {
     }
 
     const mongod = await MongoMemoryServer.create({
-      instance: {
-        storageEngine: 'ephemeralForTest',
-        dbPath: tmpDir,
-      },
+      // TEST-01 fix: pin to a version that exists on Ubuntu 22.04 CI/CD
+      binary: { version: '7.0.14' },
     });
     (global as unknown as GlobalWithMongo).__MONGOD__ = mongod;
     process.env.MONGO_URI_TEST = mongod.getUri();

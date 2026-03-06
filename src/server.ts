@@ -1,12 +1,14 @@
 import 'dotenv/config';
 import 'module-alias/register';
 import http from 'http';
+import cron from 'node-cron';
 import { createAppWithGraphQL } from './app';
 import { connectDatabase, disconnectDatabase } from './config/database';
 import { env } from './config/env';
 import { initSocketServer } from './socket';
 import { logger } from './utils/logger';
 import { startEmailWorker } from './workers/emailWorker';
+import { runDailyDigest } from './services/digest.service';
 
 async function start(): Promise<void> {
   // Warn about insecure defaults in production
@@ -31,6 +33,15 @@ async function start(): Promise<void> {
 
   const emailWorker = startEmailWorker();
   logger.info('Email worker started');
+
+  // PDF-13 fix: schedule daily digest at 08:00 every day
+  cron.schedule('0 8 * * *', () => {
+    logger.info('Running daily digest cron job');
+    void runDailyDigest().catch((err: unknown) =>
+      logger.error('Daily digest cron failed:', err),
+    );
+  });
+  logger.info('Daily digest cron scheduled (08:00 daily)');
 
   httpServer.listen(env.port, () => {
     logger.info(`Server running on port ${env.port} [${env.nodeEnv}]`);

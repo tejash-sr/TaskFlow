@@ -59,11 +59,14 @@ export const resendVerificationValidation = [
 export const createTaskValidation = [
   body('title')
     .trim()
+    .escape()
     .notEmpty().withMessage('Title is required')
     .isLength({ min: 3, max: 100 }).withMessage('Title must be 3–100 characters'),
   body('description')
     .trim()
-    .notEmpty().withMessage('Description is required'),
+    .customSanitizer((v: string) => v.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '').replace(/<[^>]+>/g, ''))
+    .notEmpty().withMessage('Description is required')
+    .isLength({ max: 2000 }).withMessage('Description must not exceed 2000 characters'),
   body('project')
     .notEmpty().withMessage('Project ID is required')
     .isMongoId().withMessage('Invalid project ID'),
@@ -80,7 +83,20 @@ export const createTaskValidation = [
     .withMessage('Invalid priority value'),
   body('dueDate')
     .optional()
-    .isISO8601().withMessage('dueDate must be a valid ISO date'),
+    .isISO8601().withMessage('dueDate must be a valid ISO date')
+    .custom((value: string) => {
+      if (new Date(value) <= new Date()) {
+        throw new Error('Due date must be in the future');
+      }
+      return true;
+    }),
+  body('tags')
+    .optional()
+    .isArray({ max: 10 }).withMessage('Tags must not exceed 10 items'),
+  body('tags.*')
+    .optional()
+    .trim()
+    .isLength({ max: 30 }).withMessage('Each tag must not exceed 30 characters'),
 ];
 
 export const updateTaskValidation = [
@@ -116,12 +132,14 @@ export const paginationQuery = [
 export const createProjectValidation = [
   body('name')
     .trim()
+    .escape()
     .notEmpty().withMessage('Project name is required')
     .isLength({ min: 2, max: 100 }).withMessage('Name must be 2–100 characters'),
   body('description')
-    .optional()
     .trim()
-    .isLength({ max: 500 }).withMessage('Description must not exceed 500 characters'),
+    .customSanitizer((v: string) => (v || '').replace(/<[^>]+>/g, ''))
+    .notEmpty().withMessage('Project description is required')
+    .isLength({ max: 1000 }).withMessage('Description must not exceed 1000 characters'),
 ];
 
 
@@ -129,6 +147,7 @@ export const createCommentValidation = [
   param('id').isMongoId().withMessage('Invalid task ID'),
   body('content')
     .trim()
+    .customSanitizer((v: string) => v.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, ''))
     .notEmpty().withMessage('Comment content is required')
-    .isLength({ max: 2000 }).withMessage('Comment must not exceed 2000 characters'),
+    .isLength({ min: 1, max: 2000 }).withMessage('Comment must be 1–2000 characters'),
 ];

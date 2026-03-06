@@ -37,11 +37,20 @@ export function isAdmin(req: Request, _res: Response, next: NextFunction): void 
   next();
 }
 
-export function isOwnerOrAdmin(getOwnerId: (req: Request) => string | undefined) {
+export function isOwnerOrAdmin(
+  getOwnerId: (req: Request) => string | undefined | Promise<string | undefined>,
+) {
   return (req: Request, _res: Response, next: NextFunction): void => {
-    if (req.userRole === 'admin') return next();
-    const ownerId = getOwnerId(req);
-    if (ownerId && ownerId === req.userId) return next();
-    next(new AppError('Forbidden: insufficient permissions', 403));
+    if (req.userRole === 'admin') { next(); return; }
+    const result = getOwnerId(req);
+    if (result instanceof Promise) {
+      result.then((ownerId) => {
+        if (ownerId && ownerId === req.userId) return next();
+        next(new AppError('Forbidden: insufficient permissions', 403));
+      }).catch(next);
+    } else {
+      if (result && result === req.userId) return next();
+      next(new AppError('Forbidden: insufficient permissions', 403));
+    }
   };
 }

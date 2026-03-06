@@ -78,6 +78,32 @@ export const getMe = asyncHandler(async (req: Request, res: Response) => {
   });
 });
 
+// MISSING-01: PUT /api/auth/me — update name/email via REST API
+export const updateMe = asyncHandler(async (req: Request, res: Response) => {
+  const { name, email } = req.body as { name?: string; email?: string };
+
+  const updates: Record<string, string> = {};
+  if (name && name.trim().length >= 2) updates['name'] = name.trim();
+  if (email) {
+    const emailLower = email.toLowerCase().trim();
+    const existing = await User.findOne({ email: emailLower, _id: { $ne: req.userId } });
+    if (existing) throw new AppError('Email already taken', 409);
+    updates['email'] = emailLower;
+  }
+
+  const user = await User.findByIdAndUpdate(
+    req.userId,
+    { $set: updates },
+    { new: true, runValidators: true },
+  );
+  if (!user) throw new AppError('User not found', 404);
+
+  res.status(200).json({
+    status: 'success',
+    data: { user },
+  });
+});
+
 export const uploadAvatar = asyncHandler(async (req: Request, res: Response) => {
   if (!req.file) throw new AppError('No file uploaded', 400);
 

@@ -66,6 +66,11 @@ export class ProjectService {
     const project = await Project.findById(projectId);
     if (!project) throw new AppError('Project not found', 404);
 
+    // BUG-01 fix: only the project owner can add members
+    if (requesterId && project.owner.toString() !== requesterId) {
+      throw new AppError('Only the project owner can add members', 403);
+    }
+
     const alreadyMember = project.members.some(
       (m) => m.toString() === (user._id as Types.ObjectId).toString(),
     );

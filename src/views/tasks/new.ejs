@@ -69,17 +69,24 @@
         <div class="form-row-2">
           <div class="form-group">
             <label class="form-label" for="project">Project</label>
-            <select id="project" name="project" class="form-select">
+            <select id="project" name="project" class="form-select" onchange="updateAssignees(this.value)">
               <option value="">&mdash; No Project &mdash;</option>
               <% if (typeof projects !== 'undefined') { projects.forEach(function(p) { %>
                 <option value="<%= p._id %>" <%= (typeof preselectedProject !== 'undefined' && preselectedProject && p._id && p._id.toString() === preselectedProject) || (typeof formData !== 'undefined' && formData.project && p._id && p._id.toString() === formData.project) ? 'selected' : '' %>><%= p.name %></option>
               <% }); } %>
             </select>
           </div>
+          <!-- UI-05 fix: assignee dropdown populated by selected project's members -->
           <div class="form-group">
-            <label class="form-label" for="dueDate">Due Date</label>
-            <input type="date" id="dueDate" name="dueDate" class="form-input" />
+            <label class="form-label" for="assignee">Assignee</label>
+            <select id="assignee" name="assignee" class="form-select">
+              <option value="">— Assign to me —</option>
+            </select>
           </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="dueDate">Due Date</label>
+          <input type="date" id="dueDate" name="dueDate" class="form-input" />
         </div>
         <div class="form-group">
           <label class="form-label" for="tags">
@@ -101,3 +108,33 @@
     </form>
   </div>
 </div>
+<script>
+// UI-05 fix: populate assignee dropdown with project members when project is selected
+const projectMembers = <%- JSON.stringify(
+  (typeof projects !== 'undefined' ? projects : []).reduce(function(acc, p) {
+    acc[p._id.toString()] = (p.members || []).map(function(m) {
+      return { id: m._id ? m._id.toString() : m.toString(), name: m.name || m.email || 'Member' };
+    });
+    return acc;
+  }, {})
+) %>;
+
+function updateAssignees(projectId) {
+  const sel = document.getElementById('assignee');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">\u2014 Assign to me \u2014</option>';
+  const members = projectMembers[projectId] || [];
+  members.forEach(function(m) {
+    const opt = document.createElement('option');
+    opt.value = m.id;
+    opt.textContent = m.name;
+    sel.appendChild(opt);
+  });
+}
+
+// Trigger on load if project is pre-selected
+(function() {
+  const sel = document.getElementById('project');
+  if (sel && sel.value) updateAssignees(sel.value);
+})();
+</script>
