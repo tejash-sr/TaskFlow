@@ -12,10 +12,10 @@ describe('AppError utility - extended', () => {
   });
 
   it('supports custom validation errors', () => {
-    const validationErrors = { email: 'Invalid email format' };
+    const validationErrors = [{ field: 'email', message: 'Invalid email format' }];
     const error = new AppError('Validation failed', 400, validationErrors);
 
-    expect(error.validationErrors).toEqual(validationErrors);
+    expect(error.errors).toEqual(validationErrors);
   });
 
   it('maintains error stack trace', () => {
@@ -83,13 +83,15 @@ describe('AsyncHandler utility', () => {
   it('wraps async function and handles errors', async () => {
     const { asyncHandler } = await import('@/utils/asyncHandler');
     
-    const mockReq = {};
-    const mockRes = {};
+    const mockReq = {} as any;
+    const mockRes = {
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn().mockReturnValue({ success: true })
+    } as any;
     const mockNext = jest.fn();
     
     const handler = asyncHandler(async (req, res) => {
-      res.status = 200;
-      res.json = jest.fn().mockReturnValue({ success: true });
+      res.status(200);
       res.json({ success: true });
     });
     
@@ -101,8 +103,8 @@ describe('AsyncHandler utility', () => {
   it('catches async errors and passes to next', async () => {
     const { asyncHandler } = await import('@/utils/asyncHandler');
     
-    const mockReq = {};
-    const mockRes = {};
+    const mockReq = {} as any;
+    const mockRes = {} as any;
     const mockNext = jest.fn();
     const testError = new Error('Async error');
     

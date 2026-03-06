@@ -23,8 +23,7 @@ describe('Task service business logic', () => {
 
   describe('Task creation with assignee', () => {
     it('creates task with specified assignee', async () => {
-      const TaskService = (await import('@/services/task.service')).default;
-      const ts = new TaskService();
+      const ts = (await import('@/services/task.service')).default;
 
       const task = await ts.create(
         {
@@ -43,8 +42,7 @@ describe('Task service business logic', () => {
     });
 
     it('preserves tags during task creation', async () => {
-      const TaskService = (await import('@/services/task.service')).default;
-      const ts = new TaskService();
+      const ts = (await import('@/services/task.service')).default;
 
       const tags = ['bug', 'urgent', 'backend'];
       const task = await ts.create(
@@ -64,8 +62,7 @@ describe('Task service business logic', () => {
     });
 
     it('validates future dueDate requirement', async () => {
-      const TaskService = (await import('@/services/task.service')).default;
-      const ts = new TaskService();
+      const ts = (await import('@/services/task.service')).default;
 
       const pastDate = new Date();
       pastDate.setDate(pastDate.getDate() - 1);
@@ -95,8 +92,7 @@ describe('Task service business logic', () => {
   describe('Task filtering with cursor pagination', () => {
     beforeEach(async () => {
       // Create multiple tasks for pagination testing
-      const TaskService = (await import('@/services/task.service')).default;
-      const ts = new TaskService();
+      const ts = (await import('@/services/task.service')).default;
 
       for (let i = 0; i < 5; i++) {
         await ts.create(
@@ -114,59 +110,57 @@ describe('Task service business logic', () => {
     });
 
     it('supports cursor-based pagination', async () => {
-      const TaskService = (await import('@/services/task.service')).default;
-      const ts = new TaskService();
+      const ts = (await import('@/services/task.service')).default;
 
-      const firstPage = await ts.findByFilters(
-        {
-          project: testProject._id.toString(),
-          limit: '2',
-        },
-        testUser._id.toString()
-      );
+      const firstPage = await ts.findAll({
+        page: 1,
+        limit: 2,
+        status: undefined,
+        priority: undefined,
+        assignee: undefined,
+      });
 
-      expect(Array.isArray(firstPage)).toBe(true);
-      expect(firstPage.length).toBeLessThanOrEqual(2);
+      expect(Array.isArray(firstPage.data)).toBe(true);
+      expect(firstPage.data.length).toBeLessThanOrEqual(2);
     });
 
     it('filters tasks by status', async () => {
-      const TaskService = (await import('@/services/task.service')).default;
-      const ts = new TaskService();
+      const ts = (await import('@/services/task.service')).default;
 
-      const todoTasks = await ts.findByFilters(
-        {
-          project: testProject._id.toString(),
-          status: 'todo',
-        },
-        testUser._id.toString()
-      );
+      const todoTasks = await ts.findAll({
+        page: 1,
+        limit: 20,
+        status: 'todo',
+        priority: undefined,
+        assignee: undefined,
+        search: undefined,
+      });
 
-      expect(Array.isArray(todoTasks)).toBe(true);
-      todoTasks.forEach(task => {
+      expect(Array.isArray(todoTasks.data)).toBe(true);
+      todoTasks.data.forEach((task: any) => {
         expect(task.status).toBe('todo');
       });
     });
 
     it('searches tasks by title', async () => {
-      const TaskService = (await import('@/services/task.service')).default;
-      const ts = new TaskService();
+      const ts = (await import('@/services/task.service')).default;
 
-      const searchResults = await ts.findByFilters(
-        {
-          project: testProject._id.toString(),
-          search: 'Task 1',
-        },
-        testUser._id.toString()
-      );
+      const searchResults = await ts.findAll({
+        page: 1,
+        limit: 20,
+        status: undefined,
+        priority: undefined,
+        assignee: undefined,
+        search: 'Task 1',
+      });
 
-      expect(Array.isArray(searchResults)).toBe(true);
+      expect(Array.isArray(searchResults.data)).toBe(true);
     });
   });
 
   describe('Task update with validation', () => {
     it('updates task and runs validators', async () => {
-      const TaskService = (await import('@/services/task.service')).default;
-      const ts = new TaskService();
+      const ts = (await import('@/services/task.service')).default;
 
       const task = await ts.create(
         {
@@ -180,15 +174,11 @@ describe('Task service business logic', () => {
         testUser._id.toString()
       );
 
-      const updated = await ts.update(
-        {
+      const updated = await ts.update(task._id.toString(), {
           title: 'Updated Task',
           status: 'in_progress',
           priority: 'high',
-        },
-        task._id.toString(),
-        testUser._id.toString()
-      );
+        });
 
       expect(updated.title).toBe('Updated Task');
       expect(updated.status).toBe('in_progress');

@@ -30,8 +30,7 @@ describe('ProjectService - extended coverage', () => {
 
   describe('BUG-01: addMember security', () => {
     it('allows owner to add members', async () => {
-      const ProjectService = (await import('@/services/project.service')).default;
-      const ps = new ProjectService();
+      const ps = (await import('@/services/project.service')).default;
 
       const result = await ps.addMember(
         testProject._id.toString(),
@@ -43,8 +42,7 @@ describe('ProjectService - extended coverage', () => {
     });
 
     it('prevents non-owner from adding members', async () => {
-      const ProjectService = (await import('@/services/project.service')).default;
-      const ps = new ProjectService();
+      const ps = (await import('@/services/project.service')).default;
 
       const another = await User.create({
         name: 'Another User',
@@ -62,8 +60,7 @@ describe('ProjectService - extended coverage', () => {
     });
 
     it('prevents duplicate member addition', async () => {
-      const ProjectService = (await import('@/services/project.service')).default;
-      const ps = new ProjectService();
+      const ps = (await import('@/services/project.service')).default;
 
       // Add member first time
       await ps.addMember(
@@ -85,8 +82,7 @@ describe('ProjectService - extended coverage', () => {
 
   describe('Project removal', () => {
     it('prevents non-owner from removing members', async () => {
-      const ProjectService = (await import('@/services/project.service')).default;
-      const ps = new ProjectService();
+      const ps = (await import('@/services/project.service')).default;
 
       // Add member first
       await ps.addMember(
@@ -106,8 +102,7 @@ describe('ProjectService - extended coverage', () => {
     });
 
     it('allows owner to remove members', async () => {
-      const ProjectService = (await import('@/services/project.service')).default;
-      const ps = new ProjectService();
+      const ps = (await import('@/services/project.service')).default;
 
       // Add member first
       await ps.addMember(
@@ -123,14 +118,13 @@ describe('ProjectService - extended coverage', () => {
         owner._id.toString()
       );
 
-      expect(result.members.some(m => m.toString() === member._id.toString())).toBe(false);
+      expect(result.members.some((m: any) => m.toString() === member._id.toString())).toBe(false);
     });
   });
 
   describe('PDF-08: Project validation', () => {
     it('requires description on project creation', async () => {
-      const ProjectService = (await import('@/services/project.service')).default;
-      const ps = new ProjectService();
+      const ps = (await import('@/services/project.service')).default;
 
       // Service might not validate, but model should
       const proj = await ps.create(

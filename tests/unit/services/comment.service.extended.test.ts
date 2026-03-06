@@ -32,8 +32,7 @@ describe('CommentService - extended coverage', () => {
 
   describe('Comment creation', () => {
     it('creates comment with content', async () => {
-      const CommentService = (await import('@/services/comment.service')).CommentService;
-      const cs = new CommentService();
+      const cs = (await import('@/services/comment.service')).default;
 
       const comment = await cs.create(
         testTask._id.toString(),
@@ -49,8 +48,7 @@ describe('CommentService - extended coverage', () => {
     });
 
     it('rejects empty comment content', async () => {
-      const CommentService = (await import('@/services/comment.service')).CommentService;
-      const cs = new CommentService();
+      const cs = (await import('@/services/comment.service')).default;
 
       await expect(
         cs.create(
@@ -64,8 +62,7 @@ describe('CommentService - extended coverage', () => {
     });
 
     it('creates nested comment reply', async () => {
-      const CommentService = (await import('@/services/comment.service')).CommentService;
-      const cs = new CommentService();
+      const cs = (await import('@/services/comment.service')).default;
 
       const parent = await cs.create(
         testTask._id.toString(),
@@ -91,8 +88,7 @@ describe('CommentService - extended coverage', () => {
 
   describe('Comment retrieval', () => {
     beforeEach(async () => {
-      const CommentService = (await import('@/services/comment.service')).CommentService;
-      const cs = new CommentService();
+      const cs = (await import('@/services/comment.service')).default;
 
       for (let i = 0; i < 3; i++) {
         await cs.create(
@@ -106,20 +102,18 @@ describe('CommentService - extended coverage', () => {
     });
 
     it('retrieves all comments for a task', async () => {
-      const CommentService = (await import('@/services/comment.service')).CommentService;
-      const cs = new CommentService();
+      const cs = (await import('@/services/comment.service')).default;
 
-      const comments = await cs.findByTaskId(testTask._id.toString());
+      const comments = await cs.findByTask(testTask._id.toString());
 
       expect(Array.isArray(comments)).toBe(true);
       expect(comments.length).toBeGreaterThanOrEqual(3);
     });
 
     it('includes author information in comments', async () => {
-      const CommentService = (await import('@/services/comment.service')).CommentService;
-      const cs = new CommentService();
+      const cs = (await import('@/services/comment.service')).default;
 
-      const comments = await cs.findByTaskId(testTask._id.toString());
+      const comments = await cs.findByTask(testTask._id.toString());
 
       expect(comments[0]).toHaveProperty('author');
     });
