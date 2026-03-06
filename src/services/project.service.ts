@@ -98,11 +98,6 @@ export class ProjectService {
   }
 
   async getProjectTasks(projectId: string, page = 1, limit = 20): Promise<PaginatedResult<ITask>> {
-    const project = await Project.findById(projectId);
-    if (!project) {
-      throw new AppError('Project not found', 404);
-    }
-
     const skip = (page - 1) * limit;
     const query = { project: new Types.ObjectId(projectId), deletedAt: { $exists: false } };
 

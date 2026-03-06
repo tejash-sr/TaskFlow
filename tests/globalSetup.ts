@@ -1,29 +1,15 @@
 import { MongoMemoryServer } from "mongodb-memory-server";
-import * as fs from 'fs';
-import * as path from 'path';
 
 interface GlobalWithMongo {
   __MONGOD__: MongoMemoryServer;
 }
 
 export default async function globalSetup(): Promise<void> {
-  try {
-    // Create a custom temp directory for MongoDB
-    const tmpDir = path.join(process.cwd(), '.mongodb-tmp');
-    if (!fs.existsSync(tmpDir)) {
-      fs.mkdirSync(tmpDir, { recursive: true });
-    }
-
-    const mongod = await MongoMemoryServer.create({
-      instance: {
-        storageEngine: 'ephemeralForTest',
-        dbPath: tmpDir,
-      },
-    });
-    (global as unknown as GlobalWithMongo).__MONGOD__ = mongod;
-    process.env.MONGO_URI_TEST = mongod.getUri();
-  } catch (error) {
-    console.error('Failed to start MongoMemoryServer:', error);
-    throw error;
-  }
+  const mongod = await MongoMemoryServer.create({
+    instance: {
+      storageEngine: 'wiredTiger',
+    },
+  });
+  (global as unknown as GlobalWithMongo).__MONGOD__ = mongod;
+  process.env.MONGO_URI_TEST = mongod.getUri();
 }
