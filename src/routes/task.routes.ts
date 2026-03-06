@@ -7,7 +7,7 @@ import {
   updateTask,
   deleteTask,
 } from '@/controllers/task.controller';
-import { addComment, listComments } from '@/controllers/comment.controller';
+import { addComment, listComments, deleteComment } from '@/controllers/comment.controller';
 import {
   uploadAttachment,
   downloadAttachment,
@@ -295,5 +295,32 @@ router.get('/:id/attachments/file/:filename', validate(mongoIdParam), downloadAt
  */
 router.post('/:id/comments', validate(createCommentValidation), addComment);
 router.get('/:id/comments', validate(mongoIdParam), listComments);
+
+/**
+ * @openapi
+ * /tasks/{id}/comments/{commentId}:
+ *   delete:
+ *     tags: [Comments]
+ *     summary: Delete a comment from a task (comment author only)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *       - in: path
+ *         name: commentId
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Comment deleted
+ *       403:
+ *         description: You can only delete your own comments
+ *       404:
+ *         description: Comment not found
+ */
+router.delete('/:id/comments/:commentId', validate(mongoIdParam), deleteComment);
 
 export default router;

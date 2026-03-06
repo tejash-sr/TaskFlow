@@ -7,9 +7,36 @@ import Project from '@/models/Project.model';
 import Task from '@/models/Task.model';
 import { AppError } from '@/utils/AppError';
 
+export const getProjects = asyncHandler(async (req: Request, res: Response) => {
+  const projects = await projectService.findAll();
+  res.status(200).json({ status: 'success', data: projects });
+});
+
+export const getProject = asyncHandler(async (req: Request, res: Response) => {
+  const project = await projectService.findById(req.params.id);
+  res.status(200).json({ status: 'success', data: project });
+});
+
 export const createProject = asyncHandler(async (req: Request, res: Response) => {
   const project = await projectService.create(req.body, req.userId!);
   res.status(201).json({ status: 'success', data: project });
+});
+
+export const deleteProject = asyncHandler(async (req: Request, res: Response) => {
+  await projectService.deleteProject(req.params.id, req.userId!);
+  res.status(200).json({ status: 'success', message: 'Project deleted successfully' });
+});
+
+export const addProjectMember = asyncHandler(async (req: Request, res: Response) => {
+  const { email } = req.body;
+  if (!email) throw new AppError('Email is required', 400);
+  const project = await projectService.addMember(req.params.id, email, req.userId);
+  res.status(200).json({ status: 'success', data: project });
+});
+
+export const removeProjectMember = asyncHandler(async (req: Request, res: Response) => {
+  const project = await projectService.removeMember(req.params.id, req.params.memberId, req.userId!);
+  res.status(200).json({ status: 'success', data: project });
 });
 
 export const getProjectTasks = asyncHandler(async (req: Request, res: Response) => {

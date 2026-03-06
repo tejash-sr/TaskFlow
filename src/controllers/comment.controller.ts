@@ -11,3 +11,8 @@ export const listComments = asyncHandler(async (req: Request, res: Response) => 
   const comments = await commentService.findByTask(req.params.id);
   res.status(200).json({ status: 'success', data: comments });
 });
+
+export const deleteComment = asyncHandler(async (req: Request, res: Response) => {
+  await commentService.deleteComment(req.params.commentId, req.userId!);
+  res.status(200).json({ status: 'success', message: 'Comment deleted successfully' });
+});

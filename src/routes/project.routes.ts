@@ -1,6 +1,11 @@
 import { Router } from 'express';
 import {
+  getProjects,
+  getProject,
   createProject,
+  deleteProject,
+  addProjectMember,
+  removeProjectMember,
   getProjectTasks,
   getProjectReport,
   exportProjectCsv,
@@ -12,6 +17,26 @@ import { createProjectValidation, mongoIdParam, paginationQuery } from '@/valida
 const router = Router();
 
 router.use(isAuth);
+
+/**
+ * @openapi
+ * /projects:
+ *   get:
+ *     tags: [Projects]
+ *     summary: Get all projects
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of all projects
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Project'
+ */
+router.get('/', getProjects);
 
 /**
  * @openapi
@@ -40,6 +65,112 @@ router.use(isAuth);
  *             schema: { $ref: '#/components/schemas/Project' }
  */
 router.post('/', validate(createProjectValidation), createProject);
+
+/**
+ * @openapi
+ * /projects/{id}:
+ *   get:
+ *     tags: [Projects]
+ *     summary: Get a single project by ID
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Project details
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Project' }
+ *       404:
+ *         description: Project not found
+ */
+router.get('/:id', validate(mongoIdParam), getProject);
+
+/**
+ * @openapi
+ * /projects/{id}:
+ *   delete:
+ *     tags: [Projects]
+ *     summary: Delete a project (owner only)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Project deleted
+ *       403:
+ *         description: Only owner can delete
+ *       404:
+ *         description: Project not found
+ */
+router.delete('/:id', validate(mongoIdParam), deleteProject);
+
+/**
+ * @openapi
+ * /projects/{id}/members:
+ *   post:
+ *     tags: [Projects]
+ *     summary: Add a member to a project (owner only)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email]
+ *             properties:
+ *               email: { type: string, example: user@example.com }
+ *     responses:
+ *       200:
+ *         description: Member added
+ *       403:
+ *         description: Only owner can add members
+ *       404:
+ *         description: User or project not found
+ */
+router.post('/:id/members', validate(mongoIdParam), addProjectMember);
+
+/**
+ * @openapi
+ * /projects/{id}/members/{memberId}:
+ *   delete:
+ *     tags: [Projects]
+ *     summary: Remove a member from a project (owner only)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *       - in: path
+ *         name: memberId
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Member removed
+ *       403:
+ *         description: Only owner can remove members
+ *       404:
+ *         description: Project not found
+ */
+router.delete('/:id/members/:memberId', validate([...mongoIdParam]), removeProjectMember);
 
 /**
  * @openapi

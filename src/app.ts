@@ -103,6 +103,10 @@ export function createApp(testMiddleware?: RequestHandler[]): Application {
   app.use(ejsLayouts);
 
   app.use(express.static(publicPath));
+  
+  // Serve uploaded files (avatars, etc.) as static files
+  const uploadsPath = env.uploadDir;
+  app.use('/uploads', express.static(uploadsPath));
 
   app.use(helmet({ contentSecurityPolicy: false }));
   app.use(requestId);
