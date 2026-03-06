@@ -35,7 +35,7 @@ async function seedTaskAndToken() {
 
 describe('File Upload & Export — integration', () => {
   describe('POST /api/tasks/:id/attachments', () => {
-    it.skip('attaches an uploaded PNG to the task and returns 200', async () => {
+    it('attaches an uploaded PNG to the task and returns 200', async () => {
       const { token, task } = await seedTaskAndToken();
 
       // Create a tiny PNG-like temp file
