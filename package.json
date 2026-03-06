@@ -6,8 +6,8 @@
   "scripts": {
     "predev": "node -e \"const {execSync}=require('child_process');try{const o=execSync('netstat -ano').toString();const m=o.match(/[:\\s]5000[\\s]+\\S+[\\s]+LISTENING[\\s]+(\\d+)/);if(m)process.platform==='win32'?execSync('taskkill /F /PID '+m[1]):execSync('kill '+m[1]);}catch(e){}\"",
     "dev": "ts-node -r tsconfig-paths/register src/server.ts",
-    "build": "tsc -p tsconfig.build.json && tsc-alias -p tsconfig.build.json",
-    "start": "node dist/server.js",
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node -r module-alias/register dist/server.js",
     "test": "jest --runInBand",
     "test:watch": "jest --watch --runInBand",
     "test:coverage": "jest --coverage --runInBand",
@@ -19,6 +19,9 @@
     "format:check": "prettier --check src tests",
     "typecheck": "tsc --noEmit",
     "postinstall": "npm run build || true"
+  },
+  "_moduleAliases": {
+    "@": "dist"
   },
   "dependencies": {
     "@apollo/server": "^4.13.0",
@@ -38,6 +41,7 @@
     "helmet": "^7.1.0",
     "ioredis": "^5.10.0",
     "jsonwebtoken": "^9.0.2",
+    "module-alias": "^2.3.4",
     "mongoose": "^8.1.1",
     "morgan": "^1.10.0",
     "multer": "^1.4.5-lts.1",
