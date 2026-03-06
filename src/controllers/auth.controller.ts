@@ -48,6 +48,25 @@ export const resetPassword = asyncHandler(async (req: Request, res: Response) =>
   });
 });
 
+export const verifyEmail = asyncHandler(async (req: Request, res: Response) => {
+  const { token } = req.query as { token: string };
+  if (!token) throw new AppError('Verification token is required', 400);
+  await authService.verifyEmail(token);
+  res.status(200).json({
+    status: 'success',
+    message: 'Email verified successfully',
+  });
+});
+
+export const resendVerification = asyncHandler(async (req: Request, res: Response) => {
+  const { email } = req.body as { email: string };
+  await authService.resendVerification(email);
+  res.status(200).json({
+    status: 'success',
+    message: 'If your email is registered and unverified, a new verification link has been sent',
+  });
+});
+
 export const getMe = asyncHandler(async (req: Request, res: Response) => {
   const user = await User.findById(req.userId);
   if (!user) throw new AppError('User not found', 404);

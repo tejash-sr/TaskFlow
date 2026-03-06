@@ -1,7 +1,7 @@
 import { Worker, Job } from 'bullmq';
 import { redisConnection } from '@/config/queue';
 import { EmailJobData } from '@/queues/emailQueue';
-import { welcomeEmail, passwordResetEmail, taskAssignedEmail, sendMail } from '@/utils/mailer';
+import { welcomeEmail, verificationEmail, passwordResetEmail, taskAssignedEmail, sendMail } from '@/utils/mailer';
 
 async function processEmailJob(job: Job<EmailJobData>): Promise<void> {
   const data = job.data;
@@ -12,6 +12,14 @@ async function processEmailJob(job: Job<EmailJobData>): Promise<void> {
         to: data.to,
         subject: 'Welcome to TaskFlow!',
         html: welcomeEmail(data.name),
+      });
+      break;
+
+    case 'verifyEmail':
+      await sendMail({
+        to: data.to,
+        subject: 'TaskFlow — Verify your email',
+        html: verificationEmail(data.name, data.verifyUrl),
       });
       break;
 

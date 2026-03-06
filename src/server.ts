@@ -6,6 +6,7 @@ import { connectDatabase, disconnectDatabase } from './config/database';
 import { env } from './config/env';
 import { initSocketServer } from './socket';
 import { logger } from './utils/logger';
+import { startEmailWorker } from './workers/emailWorker';
 
 async function start(): Promise<void> {
   await connectDatabase();
@@ -14,6 +15,9 @@ async function start(): Promise<void> {
   const httpServer = http.createServer(app);
 
   const socketServer = initSocketServer(httpServer);
+
+  const emailWorker = startEmailWorker();
+  logger.info('Email worker started');
 
   httpServer.listen(env.port, () => {
     logger.info(`Server running on port ${env.port} [${env.nodeEnv}]`);
@@ -25,6 +29,7 @@ async function start(): Promise<void> {
       uptimeSeconds: Math.floor(process.uptime()),
       memoryMB: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
     });
+    await emailWorker.close();
     await socketServer.close();
     httpServer.close(async () => {
       logger.info('HTTP server closed');

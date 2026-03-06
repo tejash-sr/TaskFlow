@@ -35,11 +35,46 @@ class AuthService {
       password: dto.password,
     });
 
+    const rawToken = user.generateEmailVerificationToken();
+    await user.save({ validateBeforeSave: false });
+
     const tokens = this.generateTokens(user);
 
+    const verifyUrl = `${process.env.CLIENT_URL ?? `http://localhost:${env.port}`}/verify-email?token=${rawToken}`;
     void enqueueEmail({ type: 'welcome', to: user.email, name: user.name }).catch(() => {});
+    void enqueueEmail({ type: 'verifyEmail', to: user.email, name: user.name, verifyUrl }).catch(() => {});
 
     return { user, tokens };
+  }
+
+  async verifyEmail(rawToken: string): Promise<void> {
+    const hashed = crypto.createHash('sha256').update(rawToken).digest('hex');
+
+    const user = await User.findOne({
+      emailVerificationToken: hashed,
+      emailVerificationExpires: { $gt: Date.now() },
+    }).select('+emailVerificationToken +emailVerificationExpires');
+
+    if (!user) {
+      throw new AppError('Invalid or expired verification token', 400);
+    }
+
+    user.emailVerified = true;
+    user.emailVerificationToken = undefined;
+    user.emailVerificationExpires = undefined;
+    await user.save({ validateBeforeSave: false });
+  }
+
+  async resendVerification(email: string): Promise<void> {
+    const user = await User.findOne({ email: email.toLowerCase() }).select('+emailVerificationToken +emailVerificationExpires');
+    if (!user) return; // silent — no email harvesting
+    if (user.emailVerified) return; // already verified
+
+    const rawToken = user.generateEmailVerificationToken();
+    await user.save({ validateBeforeSave: false });
+
+    const verifyUrl = `${process.env.CLIENT_URL ?? `http://localhost:${env.port}`}/verify-email?token=${rawToken}`;
+    void enqueueEmail({ type: 'verifyEmail', to: user.email, name: user.name, verifyUrl }).catch(() => {});
   }
 
   async login(dto: LoginDto): Promise<{ user: IUser; tokens: AuthTokens }> {

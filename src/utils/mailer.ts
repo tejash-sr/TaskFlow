@@ -81,6 +81,17 @@ export function welcomeEmail(name: string): MailOptions['html'] {
   `;
 }
 
+export function verificationEmail(name: string, verifyUrl: string): MailOptions['html'] {
+  return `
+    <h2>Verify your TaskFlow email, ${name}!</h2>
+    <p>Click the button below to verify your email address (valid 24 hours):</p>
+    <a href="${verifyUrl}" style="background:#4f46e5;color:#fff;padding:10px 20px;text-decoration:none;border-radius:4px;display:inline-block;margin:16px 0;">
+      Verify Email
+    </a>
+    <p>If you did not sign up for TaskFlow, please ignore this email.</p>
+  `;
+}
+
 export function taskAssignedEmail(assigneeName: string, taskTitle: string, projectName: string): MailOptions['html'] {
   return `
     <h2>TaskFlow — New Task Assigned</h2>

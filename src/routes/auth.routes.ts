@@ -5,6 +5,8 @@ import {
   refresh,
   forgotPassword,
   resetPassword,
+  verifyEmail,
+  resendVerification,
   getMe,
   uploadAvatar,
 } from '@/controllers/auth.controller';
@@ -149,6 +151,48 @@ router.post('/forgot-password', validate(forgotPasswordValidation), forgotPasswo
  *         description: Invalid or expired token
  */
 router.post('/reset-password', validate(resetPasswordValidation), resetPassword);
+
+/**
+ * @openapi
+ * /auth/verify-email:
+ *   get:
+ *     tags: [Auth]
+ *     summary: Verify email address using token from email link
+ *     security: []
+ *     parameters:
+ *       - in: query
+ *         name: token
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Email verified successfully
+ *       400:
+ *         description: Invalid or expired token
+ */
+router.get('/verify-email', verifyEmail);
+
+/**
+ * @openapi
+ * /auth/resend-verification:
+ *   post:
+ *     tags: [Auth]
+ *     summary: Resend email verification link
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email]
+ *             properties:
+ *               email: { type: string, format: email }
+ *     responses:
+ *       200:
+ *         description: Verification email sent (silent if not found)
+ */
+router.post('/resend-verification', validate(forgotPasswordValidation), resendVerification);
 
 /**
  * @openapi
