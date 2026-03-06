@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import 'module-alias/register';
 import http from 'http';
 import { createAppWithGraphQL } from './app';
 import { connectDatabase, disconnectDatabase } from './config/database';
