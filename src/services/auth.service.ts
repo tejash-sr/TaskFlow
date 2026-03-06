@@ -118,7 +118,7 @@ class AuthService {
     await user.save({ validateBeforeSave: false });
 
     const resetUrl = `${process.env.CLIENT_URL ?? `http://localhost:${env.port}`}/reset-password?token=${rawToken}`;
-    void enqueueEmail({ type: 'passwordReset', to: user.email, resetUrl }).catch(() => {});
+    void enqueueEmail({ type: 'passwordReset', to: user.email, name: user.name, resetUrl }).catch(() => {});
 
     return rawToken;
   }

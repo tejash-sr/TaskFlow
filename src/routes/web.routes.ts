@@ -166,6 +166,40 @@ router.post('/forgot-password', async (req: Request, res: Response) => {
   }
 });
 
+router.get('/reset-password', (_req: Request, res: Response) => {
+  const { token } = _req.query as { token?: string };
+  if (!token) {
+    return res.redirect('/forgot-password');
+  }
+  renderWithLayout(res, 'auth/reset-password', { title: 'Reset Password', user: null, token });
+});
+
+router.post('/reset-password', async (req: Request, res: Response) => {
+  const { token, password, confirmPassword } = req.body as {
+    token: string;
+    password: string;
+    confirmPassword: string;
+  };
+  try {
+    if (!token) throw new Error('Reset token is missing');
+    if (!password || password.length < 8) throw new Error('Password must be at least 8 characters');
+    if (password !== confirmPassword) throw new Error('Passwords do not match');
+    await authService.resetPassword(token, password);
+    renderWithLayout(res, 'auth/login', {
+      title: 'Login',
+      user: null,
+      message: 'Password reset successful. Please sign in with your new password.',
+    });
+  } catch (err) {
+    renderWithLayout(res, 'auth/reset-password', {
+      title: 'Reset Password',
+      user: null,
+      token: token ?? '',
+      error: (err as Error).message,
+    });
+  }
+});
+
 router.get('/logout', (req: Request, res: Response) => {
   res.clearCookie('tf_token');
   res.redirect('/login');
@@ -410,7 +444,7 @@ router.get('/projects/:id/export', requireWebAuth, exportProjectCsv);
 router.post('/projects/:id/members', requireWebAuth, async (req: Request, res: Response) => {
   const { email } = req.body as { email: string };
   try {
-    await projectService.addMember(req.params.id, email);
+    await projectService.addMember(req.params.id, email, req.userId!);
     res.redirect('/projects/' + req.params.id + '?success=Member+added');
   } catch (err) {
     res.redirect('/projects/' + req.params.id + '?error=' + encodeURIComponent((err as Error).message));

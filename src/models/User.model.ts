@@ -101,6 +101,9 @@ userSchema.set('toJSON', {
   },
 });
 
+// Indexes for quick lookup
+userSchema.index({ role: 1 });
+
 const User = model<IUser, IUserModel>('User', userSchema);
 
 export default User;

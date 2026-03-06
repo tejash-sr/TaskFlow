@@ -100,3 +100,13 @@ export function taskAssignedEmail(assigneeName: string, taskTitle: string, proje
     <p>Log in to view the details.</p>
   `;
 }
+
+export function projectMemberAddedEmail(memberName: string, projectName: string, ownerName: string): MailOptions['html'] {
+  return `
+    <h2>TaskFlow — You've Been Added to a Project</h2>
+    <p>Hi ${memberName},</p>
+    <p><strong>${ownerName}</strong> has added you to the project: <strong>${projectName}</strong>.</p>
+    <p>You can now view and manage tasks in this project.</p>
+    <p>Log in to get started.</p>
+  `;
+}

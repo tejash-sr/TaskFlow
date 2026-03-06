@@ -9,6 +9,19 @@ import { logger } from './utils/logger';
 import { startEmailWorker } from './workers/emailWorker';
 
 async function start(): Promise<void> {
+  // Warn about insecure defaults in production
+  if (env.isProduction) {
+    if (env.jwt.secret === 'dev-secret-please-change') {
+      process.stderr.write('[SECURITY] JWT_SECRET is set to the default dev value — set a strong secret in production!\n');
+    }
+    if (env.jwt.refreshSecret === 'dev-refresh-secret-please-change') {
+      process.stderr.write('[SECURITY] JWT_REFRESH_SECRET is set to the default dev value — set a strong secret in production!\n');
+    }
+    if (!env.email.host) {
+      process.stderr.write('[WARNING] EMAIL_HOST is not set — emails will not be sent in production!\n');
+    }
+  }
+
   await connectDatabase();
 
   const app = await createAppWithGraphQL();
