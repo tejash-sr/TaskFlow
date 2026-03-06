@@ -39,12 +39,21 @@ const authLimiter = rateLimit({
 export function createApp(testMiddleware?: RequestHandler[]): Application {
   const app = express();
 
+  const viewsPath = path.join(process.cwd(), 'src', 'views');
+  const publicPath = path.join(process.cwd(), 'public');
+  
+  if (!env.isTest) {
+    console.log(`[EJS] cwd: ${process.cwd()}`);
+    console.log(`[EJS] views path: ${viewsPath}`);
+    console.log(`[EJS] public path: ${publicPath}`);
+  }
+
   app.set('view engine', 'ejs');
-  app.set('views', path.join(process.cwd(), 'src', 'views'));
+  app.set('views', viewsPath);
   app.set('layout', 'layout');
   app.use(ejsLayouts);
 
-  app.use(express.static(path.join(process.cwd(), 'public')));
+  app.use(express.static(publicPath));
 
   app.use(helmet({ contentSecurityPolicy: false }));
   app.use(requestId);
