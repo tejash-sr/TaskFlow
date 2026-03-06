@@ -1,0 +1,30 @@
+<div class="auth-container auth-container-centered">
+  <div class="verify-card">
+    <% if (verified) { %>
+      <div class="verify-icon verify-icon-success">
+        <i class="fas fa-check-circle"></i>
+      </div>
+      <h1 style="font-size:1.5rem;font-weight:700;margin-bottom:var(--space-2);">Email Verified!</h1>
+      <p style="color:var(--text-secondary);margin-bottom:var(--space-6);">
+        Your email address has been verified successfully. You can now use all features of TaskFlow.
+      </p>
+      <a href="/dashboard" class="btn btn-primary btn-block">
+        <i class="fas fa-tachometer-alt"></i> Go to Dashboard
+      </a>
+    <% } else { %>
+      <div class="verify-icon verify-icon-error">
+        <i class="fas fa-times-circle"></i>
+      </div>
+      <h1 style="font-size:1.5rem;font-weight:700;margin-bottom:var(--space-2);">Verification Failed</h1>
+      <p style="color:var(--text-secondary);margin-bottom:var(--space-6);"><%= errorMessage %></p>
+      <div style="display:flex;flex-direction:column;gap:var(--space-3);">
+        <a href="/resend-verification" class="btn btn-primary btn-block">
+          <i class="fas fa-redo"></i> Resend Verification Email
+        </a>
+        <a href="/login" class="btn btn-ghost btn-block">
+          <i class="fas fa-arrow-left"></i> Back to Login
+        </a>
+      </div>
+    <% } %>
+  </div>
+</div>

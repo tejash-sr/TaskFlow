@@ -75,17 +75,45 @@ describe('Email Queue', () => {
 
   it('supports all email job types', () => {
     const welcomeJob: EmailJobData = { type: 'welcome', to: 'a@b.com', name: 'A' };
-    const resetJob: EmailJobData = { type: 'passwordReset', to: 'a@b.com', resetUrl: 'http://reset' };
+    const resetJob: EmailJobData = { type: 'passwordReset', to: 'a@b.com', name: 'A', resetUrl: 'http://reset' };
     const assignedJob: EmailJobData = {
       type: 'taskAssigned',
       to: 'a@b.com',
+      assigneeName: 'Bob',
       taskTitle: 'Fix Bug',
       taskId: '123',
+      projectName: 'My Project',
+    };
+    const memberAddedJob: EmailJobData = {
+      type: 'projectMemberAdded',
+      to: 'a@b.com',
+      memberName: 'Bob',
+      projectName: 'My Project',
+      ownerName: 'Alice',
+    };
+
+    // Type-check only — no runtime assertion needed
+    const commentJob: EmailJobData = {
+      type: 'commentAdded',
+      to: 'a@b.com',
+      assigneeName: 'Alice',
+      commenterName: 'Bob',
+      taskTitle: 'Fix Bug',
+      projectName: 'My Project',
+    };
+    const digestJob: EmailJobData = {
+      type: 'dailyDigest',
+      to: 'a@b.com',
+      name: 'Alice',
+      overdueCount: 3,
     };
 
     // Type-check only — no runtime assertion needed
     expect(welcomeJob.type).toBe('welcome');
     expect(resetJob.type).toBe('passwordReset');
     expect(assignedJob.type).toBe('taskAssigned');
+    expect(memberAddedJob.type).toBe('projectMemberAdded');
+    expect(commentJob.type).toBe('commentAdded');
+    expect(digestJob.type).toBe('dailyDigest');
   });
 });

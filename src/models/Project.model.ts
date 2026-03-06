@@ -35,6 +35,12 @@ const projectSchema = new Schema<IProject, IProjectModel>(
   { timestamps: true },
 );
 
+// Indexes for common query patterns
+projectSchema.index({ owner: 1 });
+projectSchema.index({ members: 1 });
+projectSchema.index({ status: 1 });
+projectSchema.index({ createdAt: -1 });
+
 const Project = model<IProject, IProjectModel>('Project', projectSchema);
 
 export default Project;

@@ -14,7 +14,7 @@ import {
   exportTasksPdf,
   exportTasksCsv,
 } from '@/controllers/upload.controller';
-import { isAuth } from '@/middleware/auth.middleware';
+import { isAuth, isOwnerOrAdmin } from '@/middleware/auth.middleware';
 import { upload } from '@/config/multer';
 import { validate } from '@/middleware/validate.middleware';
 import {
@@ -204,8 +204,17 @@ router.get('/cursor', listTasksCursor);
  *         description: Task deleted
  */
 router.get('/:id', validate(mongoIdParam), getTask);
-router.put('/:id', validate(updateTaskValidation), updateTask);
-router.delete('/:id', validate(mongoIdParam), deleteTask);
+// PDF-05 fix: protect mutation routes — only assignee or admin can modify/delete
+router.put('/:id', validate(updateTaskValidation), isOwnerOrAdmin(async (req) => {
+  const TaskModel = (await import('@/models/Task.model')).default;
+  const task = await TaskModel.findById(req.params.id);
+  return task?.assignee?.toString();
+}), updateTask);
+router.delete('/:id', validate(mongoIdParam), isOwnerOrAdmin(async (req) => {
+  const TaskModel = (await import('@/models/Task.model')).default;
+  const task = await TaskModel.findById(req.params.id);
+  return task?.assignee?.toString();
+}), deleteTask);
 
 /**
  * @openapi
@@ -233,7 +242,9 @@ router.delete('/:id', validate(mongoIdParam), deleteTask);
  *         description: File uploaded successfully
  */
 router.post('/:id/attachments', validate(mongoIdParam), upload.single('file'), uploadAttachment);
-router.get('/:id/attachments/:filename', validate(mongoIdParam), downloadAttachment);
+// ARCH-02 fix: support both attachmentId (new) and filename (legacy) parameter
+router.get('/:id/attachments/:attachmentId', validate(mongoIdParam), downloadAttachment);
+router.get('/:id/attachments/file/:filename', validate(mongoIdParam), downloadAttachment);
 
 /**
  * @openapi

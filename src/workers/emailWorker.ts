@@ -1,7 +1,7 @@
 import { Worker, Job } from 'bullmq';
 import { redisConnection } from '@/config/queue';
 import { EmailJobData } from '@/queues/emailQueue';
-import { welcomeEmail, verificationEmail, passwordResetEmail, taskAssignedEmail, sendMail } from '@/utils/mailer';
+import { welcomeEmail, verificationEmail, passwordResetEmail, taskAssignedEmail, projectMemberAddedEmail, commentAddedEmail, dailyDigestEmail, sendMail } from '@/utils/mailer';
 
 async function processEmailJob(job: Job<EmailJobData>): Promise<void> {
   const data = job.data;
@@ -27,7 +27,7 @@ async function processEmailJob(job: Job<EmailJobData>): Promise<void> {
       await sendMail({
         to: data.to,
         subject: 'TaskFlow — Password Reset',
-        html: passwordResetEmail('User', data.resetUrl),
+        html: passwordResetEmail(data.name, data.resetUrl),
       });
       break;
 
@@ -35,13 +35,42 @@ async function processEmailJob(job: Job<EmailJobData>): Promise<void> {
       await sendMail({
         to: data.to,
         subject: `TaskFlow — New Task Assigned: ${data.taskTitle}`,
-        html: taskAssignedEmail('User', data.taskTitle, data.taskId),
+        html: taskAssignedEmail(data.assigneeName, data.taskTitle, data.projectName),
+      });
+      break;
+
+    case 'projectMemberAdded':
+      await sendMail({
+        to: data.to,
+        subject: `TaskFlow — You've Been Added to ${data.projectName}`,
+        html: projectMemberAddedEmail(data.memberName, data.projectName, data.ownerName),
+      });
+      break;
+
+    case 'commentAdded':
+      await sendMail({
+        to: data.to,
+        subject: `TaskFlow — New Comment on "${data.taskTitle}"`,
+        html: commentAddedEmail(data.assigneeName, data.commenterName, data.taskTitle, data.projectName),
+      });
+      break;
+
+    case 'dailyDigest':
+      await sendMail({
+        to: data.to,
+        subject: `TaskFlow — Daily Digest: ${data.overdueCount} overdue task${data.overdueCount === 1 ? '' : 's'}`,
+        html: dailyDigestEmail(data.name, data.overdueCount),
       });
       break;
 
     default:
       throw new Error(`Unknown email job type: ${(data as { type: string }).type}`);
   }
+}
+
+// BUG-09 fix: exported for direct fallback when Redis/BullMQ unavailable
+export async function processEmailDirect(data: EmailJobData): Promise<void> {
+  return processEmailJob({ data } as Job<EmailJobData>);
 }
 
 export function startEmailWorker(): Worker<EmailJobData> {

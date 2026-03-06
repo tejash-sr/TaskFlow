@@ -14,3 +14,14 @@ services:
           property: connectionString
       - key: REDIS_URL
         sync: false
+      # BUG-08 fix: email env vars — set actual values in Render dashboard
+      - key: EMAIL_HOST
+        sync: false
+      - key: EMAIL_PORT
+        sync: false
+      - key: EMAIL_USER
+        sync: false
+      - key: EMAIL_PASS
+        sync: false
+      - key: EMAIL_FROM
+        sync: false

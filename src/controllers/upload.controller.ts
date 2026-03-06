@@ -31,8 +31,16 @@ export const downloadAttachment = asyncHandler(async (req: Request, res: Respons
   const task = await Task.findById(req.params.id);
   if (!task) throw new AppError('Task not found', 404);
 
+  // ARCH-02 fix: match by attachmentId (_id) not filename to avoid collision
+  const attachmentId = req.params.attachmentId ?? req.params.filename;
   const attachment = task.attachments.find(
-    (a) => path.basename(a.path) === req.params.filename,
+    (a) => {
+      const id = (a as unknown as { _id?: { toString(): string } })._id;
+      return (
+        (id && id.toString() === attachmentId) ||
+        path.basename(a.path) === attachmentId
+      );
+    }
   );
 
   if (!attachment) throw new AppError('Attachment not found', 404);

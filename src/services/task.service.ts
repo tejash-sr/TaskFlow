@@ -3,6 +3,8 @@ import Task from '@/models/Task.model';
 import Project from '@/models/Project.model';
 import { AppError } from '@/utils/AppError';
 import { ITask, PaginatedResult, CursorPaginatedResult } from '@/types/models.types';
+import { enqueueEmail } from '@/queues/emailQueue';
+import { emitToProject } from '@/socket';
 
 interface CreateTaskDTO {
   title: string;
@@ -22,6 +24,7 @@ interface UpdateTaskDTO {
   priority?: string;
   tags?: string[];
   dueDate?: string;
+  assignee?: string;
 }
 
 interface TaskFilters {
@@ -29,6 +32,8 @@ interface TaskFilters {
   priority?: string;
   assignee?: string;
   search?: string;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
   page?: number;
   limit?: number;
 }
@@ -49,11 +54,31 @@ export class TaskService {
     }
 
     const task = await Task.create(data);
+
+    // Emit socket event for real-time updates
+    emitToProject(data.project, { event: 'task:created', payload: { task } });
+
+    // Send task assignment email if the assignee is different from the creator
+    if (data.assignee && data.assignee !== requestingUserId) {
+      const User = (await import('@/models/User.model')).default;
+      const assignee = await User.findById(data.assignee).select('name email');
+      if (assignee) {
+        void enqueueEmail({
+          type: 'taskAssigned',
+          to: assignee.email,
+          assigneeName: assignee.name,
+          taskTitle: task.title,
+          taskId: (task._id as object).toString(),
+          projectName: project.name,
+        }).catch(() => {});
+      }
+    }
+
     return task;
   }
 
   async findAll(filters: TaskFilters): Promise<PaginatedResult<ITask>> {
-    const { page = 1, limit = 20, status, priority, assignee, search } = filters;
+    const { page = 1, limit = 20, status, priority, assignee, search, sortBy = 'createdAt', sortOrder = 'desc' } = filters;
     const skip = (page - 1) * limit;
 
     const query: Record<string, unknown> = { deletedAt: { $exists: false } };
@@ -67,8 +92,12 @@ export class TaskService {
       ];
     }
 
+    const sortDirection = sortOrder === 'asc' ? 1 : -1;
+    const sortField = sortBy === 'createdAt' ? 'createdAt' : sortBy;
+
     const [data, total] = await Promise.all([
       Task.find(query)
+        .sort({ [sortField]: sortDirection })
         .skip(skip)
         .limit(limit)
         .populate('assignee', 'name email')
@@ -101,14 +130,54 @@ export class TaskService {
   }
 
   async update(id: string, data: UpdateTaskDTO): Promise<ITask> {
-    const task = await Task.findOneAndUpdate(
-      { _id: id, deletedAt: { $exists: false } },
-      { $set: data },
-      { new: true, runValidators: true },
-    );
+    const task = await Task.findOne({ _id: id, deletedAt: { $exists: false } });
 
     if (!task) {
       throw new AppError('Task not found', 404);
+    }
+
+    // Validate dueDate is not in the past when explicitly changing it
+    if (data.dueDate) {
+      const newDueDate = new Date(data.dueDate);
+      if (newDueDate <= new Date()) {
+        throw new AppError('Due date must be a future date', 400);
+      }
+    }
+
+    const previousAssignee = task.assignee?.toString();
+
+    // Apply updates — using Object.assign ensures pre-save hook fires on save()
+    Object.assign(task, data);
+
+    // runValidators ensures schema validators run on update fields
+    await task.save({ validateModifiedOnly: true });
+
+    // Emit socket events for real-time updates
+    emitToProject(task.project.toString(), { event: 'task:updated', payload: { task } });
+    if (data.status) {
+      emitToProject(task.project.toString(), {
+        event: 'task:status-changed',
+        payload: { taskId: (task._id as object).toString(), oldStatus: task.status, newStatus: data.status },
+      });
+    }
+
+    // Send assignment email if assignee changed
+    if (data.assignee && data.assignee !== previousAssignee) {
+      const User = (await import('@/models/User.model')).default;
+      const [assignee, project] = await Promise.all([
+        User.findById(data.assignee).select('name email'),
+        import('@/models/Project.model').then((m) => m.default.findById(task.project).select('name')),
+      ]);
+      if (assignee) {
+        void enqueueEmail({
+          type: 'taskAssigned',
+          to: assignee.email,
+          assigneeName: assignee.name,
+          taskTitle: task.title,
+          taskId: (task._id as object).toString(),
+          projectName: project?.name ?? 'Unknown Project',
+        }).catch(() => {});
+      }
     }
 
     return task;

@@ -38,8 +38,39 @@ function updateStatusColor(sel) {
 }
 
 function updateFileName(input) {
-  var label = document.getElementById('fileName-' + input.id.replace('fileInput-', ''));
-  if (label && input.files.length > 0) label.textContent = input.files[0].name;
+  const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+  const ALLOWED_TYPES = ['application/pdf', 'image/png', 'image/jpeg', 'image/gif', 'image/webp',
+    'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+  const label = document.getElementById('fileName-' + input.id.replace('fileInput-', ''));
+  const area  = input.closest('label')?.querySelector('.file-upload-area');
+  const errEl = document.getElementById('fileErr-' + input.id.replace('fileInput-', ''));
+  const btn   = document.getElementById('uploadBtn-' + input.id.replace('fileInput-', ''));
+
+  if (!input.files.length) return;
+  const file = input.files[0];
+
+  if (file.size > MAX_SIZE) {
+    if (area)  { area.classList.add('error'); area.classList.remove('has-file'); }
+    if (errEl) { errEl.textContent = `File too large (${(file.size/1024/1024).toFixed(1)} MB). Maximum is 5 MB.`; errEl.classList.add('visible'); }
+    if (label) label.textContent = 'Choose a file to upload';
+    if (btn)   btn.disabled = true;
+    input.value = '';
+    return;
+  }
+  if (!ALLOWED_TYPES.includes(file.type)) {
+    if (area)  { area.classList.add('error'); area.classList.remove('has-file'); }
+    if (errEl) { errEl.textContent = 'Invalid file type. Allowed: PDF, PNG, JPG, GIF, WEBP, DOC, DOCX'; errEl.classList.add('visible'); }
+    if (label) label.textContent = 'Choose a file to upload';
+    if (btn)   btn.disabled = true;
+    input.value = '';
+    return;
+  }
+
+  // Valid file
+  if (area)  { area.classList.remove('error'); area.classList.add('has-file'); }
+  if (errEl) { errEl.textContent = ''; errEl.classList.remove('visible'); }
+  if (label) label.textContent = file.name + ' (' + (file.size/1024).toFixed(1) + ' KB)';
+  if (btn)   btn.disabled = false;
 }
 
 // Initialise status colour on page load
@@ -252,17 +283,40 @@ function updateFileName(input) {
     <!-- Attachments -->
     <div class="task-sidebar-card">
       <h4><i class="fas fa-paperclip"></i> Attachments</h4>
+      <!-- BUG-10 fix: show existing attachments with download links -->
+      <% if (task.attachments && task.attachments.length > 0) { %>
+        <ul style="list-style:none;padding:0;margin:0 0 var(--space-3) 0;">
+          <% task.attachments.forEach(function(att) { %>
+            <li style="display:flex;align-items:center;justify-content:space-between;padding:var(--space-2) 0;border-bottom:1px solid var(--border-color);">
+              <span style="font-size:0.85rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:140px;" title="<%= att.filename %>">
+                <i class="fas fa-file" style="margin-right:4px;color:var(--text-tertiary);"></i><%= att.filename %>
+              </span>
+              <a href="/api/tasks/<%= task._id %>/attachments/<%= att._id %>"
+                 class="btn btn-secondary btn-sm"
+                 style="flex-shrink:0;padding:2px 8px;font-size:0.75rem;"
+                 download="<%= att.filename %>">
+                <i class="fas fa-download"></i>
+              </a>
+            </li>
+          <% }); %>
+        </ul>
+      <% } %>
       <form action="/tasks/<%= task._id %>/attachments" method="POST" enctype="multipart/form-data">
         <div class="form-group">
           <label class="file-upload-label">
-            <input type="file" name="file" id="fileInput-<%= task._id %>" style="display:none;" onchange="updateFileName(this)" />
+            <input type="file" name="file" id="fileInput-<%= task._id %>"
+              style="display:none;"
+              accept=".pdf,.png,.jpg,.jpeg,.gif,.webp,.doc,.docx"
+              onchange="updateFileName(this)" />
             <div class="file-upload-area" onclick="document.getElementById('fileInput-<%= task._id %>').click()">
               <i class="fas fa-cloud-upload-alt"></i>
-              <span id="fileName-<%= task._id %>" style="font-size:0.8rem;color:var(--text-secondary);">Choose a file to upload</span>
+              <div id="fileName-<%= task._id %>" class="file-upload-msg">Choose a file to upload</div>
             </div>
           </label>
+          <div id="fileErr-<%= task._id %>" class="file-error-msg"></div>
+          <div class="file-upload-msg" style="margin-top:4px;">Max 5 MB — PDF, PNG, JPG, GIF, DOCX</div>
         </div>
-        <button type="submit" class="btn btn-secondary btn-block btn-sm">
+        <button type="submit" id="uploadBtn-<%= task._id %>" class="btn btn-secondary btn-block btn-sm">
           <i class="fas fa-upload"></i> Upload File
         </button>
       </form>

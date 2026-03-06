@@ -18,17 +18,45 @@ export interface VerifyEmailJob {
 export interface PasswordResetEmailJob {
   type: 'passwordReset';
   to: string;
+  name: string;
   resetUrl: string;
 }
 
 export interface TaskAssignedEmailJob {
   type: 'taskAssigned';
   to: string;
+  assigneeName: string;
   taskTitle: string;
   taskId: string;
+  projectName: string;
 }
 
-export type EmailJobData = WelcomeEmailJob | VerifyEmailJob | PasswordResetEmailJob | TaskAssignedEmailJob;
+export interface ProjectMemberAddedEmailJob {
+  type: 'projectMemberAdded';
+  to: string;
+  memberName: string;
+  projectName: string;
+  ownerName: string;
+}
+
+export interface CommentAddedEmailJob {
+  type: 'commentAdded';
+  to: string;
+  assigneeName: string;
+  commenterName: string;
+  taskTitle: string;
+  projectName: string;
+  taskUrl?: string;
+}
+
+export interface DigestEmailJob {
+  type: 'dailyDigest';
+  to: string;
+  name: string;
+  overdueCount: number;
+}
+
+export type EmailJobData = WelcomeEmailJob | VerifyEmailJob | PasswordResetEmailJob | TaskAssignedEmailJob | ProjectMemberAddedEmailJob | CommentAddedEmailJob | DigestEmailJob;
 
 let _queue: Queue<EmailJobData> | null = null;
 
@@ -56,6 +84,12 @@ export async function enqueueEmail(data: EmailJobData): Promise<void> {
   try {
     await getEmailQueue().add(data.type, data);
   } catch {
-    process.stderr.write(`[EmailQueue] Redis unavailable — email job skipped (${data.type})\n`);
+    // BUG-09 fix: Redis unavailable — process email directly so emails still send
+    try {
+      const { processEmailDirect } = await import('@/workers/emailWorker');
+      await processEmailDirect(data);
+    } catch (fallbackErr) {
+      process.stderr.write(`[EmailQueue] Fallback direct send also failed (${data.type}): ${String(fallbackErr)}\n`);
+    }
   }
 }
