@@ -94,7 +94,7 @@ class AuthService {
     const user = await User.findOne({
       resetToken: hashed,
       resetTokenExp: { $gt: Date.now() },
-    });
+    }).select('+password +resetToken +resetTokenExp');
 
     if (!user) {
       throw new AppError('Invalid or expired reset token', 400);
