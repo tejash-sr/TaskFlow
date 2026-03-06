@@ -1,5 +1,6 @@
 import express, { Application, Request, Response, NextFunction, RequestHandler } from 'express';
 import path from 'path';
+import fs from 'fs';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
@@ -36,16 +37,63 @@ const authLimiter = rateLimit({
   message: { status: 'error', message: 'Too many auth requests, please try again later' },
 });
 
+/**
+ * Resolve the correct views directory path across different environments
+ * Works with: local dev, tests, and production (Render.com)
+ */
+function resolveViewsPath(): string {
+  const cwd = process.cwd();
+  
+  // Try multiple possible locations in order of likelihood
+  const candidates = [
+    path.join(cwd, 'src', 'views'),        // Local dev and Render: /project/src/views
+    path.join(__dirname, 'views'),         // Fallback: if running from dist/
+    path.join(__dirname, '..', 'src', 'views'), // Fallback: dist/../src/views
+  ];
+
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) {
+      return candidate;
+    }
+  }
+
+  // Default to first candidate if none found (should exist in proper deployment)
+  return candidates[0];
+}
+
+/**
+ * Resolve the correct public directory path across different environments
+ */
+function resolvePublicPath(): string {
+  const cwd = process.cwd();
+  
+  const candidates = [
+    path.join(cwd, 'public'),              // Local dev and Render
+    path.join(__dirname, '..', 'public'),  // Fallback: if running from dist/
+  ];
+
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) {
+      return candidate;
+    }
+  }
+
+  return candidates[0];
+}
+
 export function createApp(testMiddleware?: RequestHandler[]): Application {
   const app = express();
 
-  const viewsPath = path.join(process.cwd(), 'src', 'views');
-  const publicPath = path.join(process.cwd(), 'public');
+  const viewsPath = resolveViewsPath();
+  const publicPath = resolvePublicPath();
   
   if (!env.isTest) {
     console.log(`[EJS] cwd: ${process.cwd()}`);
+    console.log(`[EJS] __dirname: ${__dirname}`);
     console.log(`[EJS] views path: ${viewsPath}`);
     console.log(`[EJS] public path: ${publicPath}`);
+    console.log(`[EJS] views exist: ${fs.existsSync(viewsPath)}`);
+    console.log(`[EJS] public exist: ${fs.existsSync(publicPath)}`);
   }
 
   app.set('view engine', 'ejs');
