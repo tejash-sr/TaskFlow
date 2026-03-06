@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: TaskFlow API
+    runtime: node
+    plan: free
+    buildCommand: npm ci && npm run build
+    startCommand: node dist/server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        fromDatabase:
+          name: taskflow-db
+          property: connectionString
+      - key: REDIS_URL
+        sync: false
