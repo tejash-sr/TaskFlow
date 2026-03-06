@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { AppError } from '@/utils/AppError';
 import { verifyAccessToken } from '@/utils/tokenUtils';
+import { isTokenBlacklisted } from '@/utils/tokenBlacklist';
 
 export function isAuth(req: Request, _res: Response, next: NextFunction): void {
   const header = req.headers.authorization;
@@ -13,7 +14,17 @@ export function isAuth(req: Request, _res: Response, next: NextFunction): void {
     const payload = verifyAccessToken(token);
     req.userId = payload.userId;
     req.userRole = payload.role;
-    next();
+
+    // Async blacklist check — we do NOT await in the sync middleware path;
+    // instead we convert to a promise-based flow via next(err).
+    isTokenBlacklisted(token).then((blacklisted) => {
+      if (blacklisted) {
+        next(new AppError('Token has been revoked. Please log in again.', 401));
+      } else {
+        next();
+      }
+    }).catch(() => next()); // fail-open: if Redis is down, let through
+
   } catch (err: unknown) {
     next(err);
   }

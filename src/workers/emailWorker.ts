@@ -1,7 +1,7 @@
 import { Worker, Job } from 'bullmq';
 import { redisConnection } from '@/config/queue';
 import { EmailJobData } from '@/queues/emailQueue';
-import { welcomeEmail, verificationEmail, passwordResetEmail, taskAssignedEmail, projectMemberAddedEmail, sendMail } from '@/utils/mailer';
+import { welcomeEmail, verificationEmail, passwordResetEmail, taskAssignedEmail, projectMemberAddedEmail, commentAddedEmail, dailyDigestEmail, sendMail } from '@/utils/mailer';
 
 async function processEmailJob(job: Job<EmailJobData>): Promise<void> {
   const data = job.data;
@@ -44,6 +44,22 @@ async function processEmailJob(job: Job<EmailJobData>): Promise<void> {
         to: data.to,
         subject: `TaskFlow — You've Been Added to ${data.projectName}`,
         html: projectMemberAddedEmail(data.memberName, data.projectName, data.ownerName),
+      });
+      break;
+
+    case 'commentAdded':
+      await sendMail({
+        to: data.to,
+        subject: `TaskFlow — New Comment on "${data.taskTitle}"`,
+        html: commentAddedEmail(data.assigneeName, data.commenterName, data.taskTitle, data.projectName),
+      });
+      break;
+
+    case 'dailyDigest':
+      await sendMail({
+        to: data.to,
+        subject: `TaskFlow — Daily Digest: ${data.overdueCount} overdue task${data.overdueCount === 1 ? '' : 's'}`,
+        html: dailyDigestEmail(data.name, data.overdueCount),
       });
       break;
 

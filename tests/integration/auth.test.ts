@@ -165,4 +165,25 @@ describe('Auth API — integration', () => {
       expect(res.status).toBe(400);
     });
   });
+
+  describe('POST /api/auth/logout', () => {
+    it('returns 200 with valid token', async () => {
+      const signup = await request(app)
+        .post('/api/auth/signup')
+        .send({ name: 'Ivan', email: 'ivan@test.com', password: 'password123' });
+
+      const { accessToken } = signup.body.data as { accessToken: string };
+
+      const res = await request(app)
+        .post('/api/auth/logout')
+        .set('Authorization', `Bearer ${accessToken}`);
+
+      expect(res.status).toBe(200);
+    });
+
+    it('returns 401 when no token is provided', async () => {
+      const res = await request(app).post('/api/auth/logout');
+      expect(res.status).toBe(401);
+    });
+  });
 });

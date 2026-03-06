@@ -39,7 +39,24 @@ export interface ProjectMemberAddedEmailJob {
   ownerName: string;
 }
 
-export type EmailJobData = WelcomeEmailJob | VerifyEmailJob | PasswordResetEmailJob | TaskAssignedEmailJob | ProjectMemberAddedEmailJob;
+export interface CommentAddedEmailJob {
+  type: 'commentAdded';
+  to: string;
+  assigneeName: string;
+  commenterName: string;
+  taskTitle: string;
+  projectName: string;
+  taskUrl?: string;
+}
+
+export interface DigestEmailJob {
+  type: 'dailyDigest';
+  to: string;
+  name: string;
+  overdueCount: number;
+}
+
+export type EmailJobData = WelcomeEmailJob | VerifyEmailJob | PasswordResetEmailJob | TaskAssignedEmailJob | ProjectMemberAddedEmailJob | CommentAddedEmailJob | DigestEmailJob;
 
 let _queue: Queue<EmailJobData> | null = null;
 

@@ -1,4 +1,6 @@
 import { Request, Response } from 'express';
+import path from 'path';
+import fs from 'fs';
 import { asyncHandler } from '@/utils/asyncHandler';
 import authService from '@/services/auth.service';
 import User from '@/models/User.model';
@@ -79,16 +81,85 @@ export const getMe = asyncHandler(async (req: Request, res: Response) => {
 export const uploadAvatar = asyncHandler(async (req: Request, res: Response) => {
   if (!req.file) throw new AppError('No file uploaded', 400);
 
-  const user = await User.findByIdAndUpdate(
-    req.userId,
-    { avatar: req.file.path },
-    { new: true },
-  );
-
+  const user = await User.findById(req.userId);
   if (!user) throw new AppError('User not found', 404);
+
+  // Ensure avatars subdirectory exists
+  const avatarsDir = path.join(process.cwd(), 'uploads', 'avatars');
+  if (!fs.existsSync(avatarsDir)) {
+    fs.mkdirSync(avatarsDir, { recursive: true });
+  }
+
+  let avatarRelPath: string;
+
+  try {
+    // Dynamically import sharp so tests without it still work
+    const sharp = (await import('sharp')).default;
+    const processedFilename = `avatar-${req.userId}-${Date.now()}.jpg`;
+    const processedPath = path.join(avatarsDir, processedFilename);
+
+    await sharp(req.file.path)
+      .resize(200, 200, { fit: 'cover', position: 'center' })
+      .jpeg({ quality: 90 })
+      .toFile(processedPath);
+
+    // Delete original uploaded file
+    try { fs.unlinkSync(req.file.path); } catch { /* ignore */ }
+
+    avatarRelPath = `uploads/avatars/${processedFilename}`;
+  } catch {
+    // Fallback: use file as-is if sharp fails
+    avatarRelPath = req.file.path.replace(/\\/g, '/').replace(/^.*uploads\//, 'uploads/');
+  }
+
+  // Delete old avatar if exists
+  if (user.avatar) {
+    const oldPath = path.join(process.cwd(), user.avatar);
+    try { fs.unlinkSync(oldPath); } catch { /* ignore */ }
+  }
+
+  user.avatar = avatarRelPath;
+  await user.save({ validateBeforeSave: false });
+
+  const baseUrl = process.env.BASE_URL || `http://localhost:${process.env.PORT || 5000}`;
+  res.status(200).json({
+    status: 'success',
+    data: {
+      avatar: user.avatar,
+      avatarUrl: `${baseUrl}/${user.avatar}`,
+    },
+  });
+});
+
+export const logout = asyncHandler(async (req: Request, res: Response) => {
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const { blacklistToken } = await import('@/utils/tokenBlacklist');
+    const { verifyAccessToken } = await import('@/utils/tokenUtils');
+    const token = authHeader.split(' ')[1];
+    try {
+      const payload = verifyAccessToken(token) as { exp?: number };
+      const ttl = Math.max(0, (payload.exp ?? 0) - Math.floor(Date.now() / 1000));
+      await blacklistToken(token, ttl);
+    } catch { /* already expired — no need to blacklist */ }
+  }
+  res.status(200).json({ status: 'success', message: 'Logged out successfully' });
+});
+
+export const deleteAvatar = asyncHandler(async (req: Request, res: Response) => {
+  const user = await User.findById(req.userId);
+  if (!user) throw new AppError('User not found', 404);
+
+  if (!user.avatar) throw new AppError('No avatar to delete', 400);
+
+  const avatarPath = path.join(process.cwd(), user.avatar);
+  try { fs.unlinkSync(avatarPath); } catch { /* ignore if file missing */ }
+
+  user.avatar = undefined;
+  await user.save({ validateBeforeSave: false });
 
   res.status(200).json({
     status: 'success',
-    data: { avatar: user.avatar },
+    message: 'Avatar deleted successfully',
   });
 });

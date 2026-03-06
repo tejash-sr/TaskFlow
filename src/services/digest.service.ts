@@ -45,9 +45,10 @@ export async function runDailyDigest(): Promise<DigestEntry[]> {
 
   for (const entry of entries) {
     void enqueueEmail({
-      type: 'welcome',
+      type: 'dailyDigest',
       to: entry.email,
       name: entry.name,
+      overdueCount: entry.overdueCount,
     }).catch(() => {});
   }
 

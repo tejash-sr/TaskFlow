@@ -110,3 +110,26 @@ export function projectMemberAddedEmail(memberName: string, projectName: string,
     <p>Log in to get started.</p>
   `;
 }
+
+export function commentAddedEmail(
+  assigneeName: string,
+  commenterName: string,
+  taskTitle: string,
+  projectName: string,
+): MailOptions['html'] {
+  return `
+    <h2>TaskFlow — New Comment on Your Task</h2>
+    <p>Hi ${assigneeName},</p>
+    <p><strong>${commenterName}</strong> commented on the task <strong>${taskTitle}</strong> in project <strong>${projectName}</strong>.</p>
+    <p>Log in to view the comment and reply.</p>
+  `;
+}
+
+export function dailyDigestEmail(name: string, overdueCount: number): MailOptions['html'] {
+  return `
+    <h2>TaskFlow — Daily Overdue Digest</h2>
+    <p>Hi ${name},</p>
+    <p>You have <strong>${overdueCount}</strong> overdue task${overdueCount === 1 ? '' : 's'} that need your attention.</p>
+    <p>Log in to review and update your overdue tasks.</p>
+  `;
+}

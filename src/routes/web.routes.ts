@@ -7,6 +7,7 @@ import { getProjectReport, exportProjectCsv } from '@/controllers/project.contro
 import { exportTasksPdf, exportTasksCsv } from '@/controllers/upload.controller';
 import { upload } from '@/config/multer';
 import { verifyAccessToken } from '@/utils/tokenUtils';
+import { blacklistToken } from '@/utils/tokenBlacklist';
 import User from '@/models/User.model';
 import Task from '@/models/Task.model';
 
@@ -200,9 +201,103 @@ router.post('/reset-password', async (req: Request, res: Response) => {
   }
 });
 
-router.get('/logout', (req: Request, res: Response) => {
+router.get('/logout', async (req: Request, res: Response) => {
+  const token = getTokenFromCookie(req);
+  if (token) {
+    try {
+      const payload = verifyAccessToken(token);
+      // Calculate remaining TTL (token exp - now)
+      const exp = (payload as { exp?: number }).exp ?? 0;
+      const ttl = Math.max(0, exp - Math.floor(Date.now() / 1000));
+      await blacklistToken(token, ttl);
+    } catch { /* expired token - no need to blacklist */ }
+  }
   res.clearCookie('tf_token');
   res.redirect('/login');
+});
+
+router.get('/verify-email', async (req: Request, res: Response) => {
+  const { token } = req.query as { token?: string };
+  if (!token) {
+    return renderWithLayout(res, 'auth/verify-email', {
+      title: 'Verify Email',
+      user: null,
+      verified: false,
+      errorMessage: 'No verification token provided.',
+    });
+  }
+  try {
+    await authService.verifyEmail(token);
+    renderWithLayout(res, 'auth/verify-email', {
+      title: 'Email Verified!',
+      user: null,
+      verified: true,
+      errorMessage: '',
+    });
+  } catch (err) {
+    renderWithLayout(res, 'auth/verify-email', {
+      title: 'Verification Failed',
+      user: null,
+      verified: false,
+      errorMessage: (err as Error).message,
+    });
+  }
+});
+
+router.get('/resend-verification', (_req: Request, res: Response) => {
+  renderWithLayout(res, 'auth/resend-verification', { title: 'Resend Verification', user: null });
+});
+
+router.post('/resend-verification', async (req: Request, res: Response) => {
+  const { email } = req.body as { email: string };
+  try {
+    await authService.resendVerification(email);
+    renderWithLayout(res, 'auth/resend-verification', {
+      title: 'Resend Verification',
+      user: null,
+      message: 'If your email is registered and unverified, a new verification link has been sent.',
+    });
+  } catch (err) {
+    renderWithLayout(res, 'auth/resend-verification', {
+      title: 'Resend Verification',
+      user: null,
+      error: (err as Error).message,
+    });
+  }
+});
+
+router.get('/profile', requireWebAuth, async (req: Request, res: Response) => {
+  const user = await resolveWebUser(req);
+  if (!user) return res.redirect('/login');
+  const User = (await import('@/models/User.model')).default;
+  const dbUser = await User.findById(user.id).lean();
+  renderWithLayout(res, 'profile', {
+    title: 'My Profile',
+    activePage: 'profile',
+    currentPath: '/profile',
+    user,
+    ...(dbUser as object),
+  });
+});
+
+router.post('/profile/update', requireWebAuth, async (req: Request, res: Response) => {
+  const { name, email } = req.body as { name: string; email: string };
+  const UserModel = (await import('@/models/User.model')).default;
+  try {
+    await UserModel.findByIdAndUpdate(req.userId, { name: name.trim(), email: email.toLowerCase().trim() });
+    res.redirect('/profile?success=1');
+  } catch (err) {
+    const user = await resolveWebUser(req);
+    const dbUser = await UserModel.findById(req.userId).lean();
+    renderWithLayout(res, 'profile', {
+      title: 'My Profile',
+      activePage: 'profile',
+      currentPath: '/profile',
+      user,
+      ...(dbUser as object),
+      flash: { type: 'error', message: (err as Error).message },
+    });
+  }
 });
 
 
