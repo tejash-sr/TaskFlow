@@ -3,7 +3,6 @@ import Project from '@/models/Project.model';
 import Task from '@/models/Task.model';
 import { AppError } from '@/utils/AppError';
 import { IProject, ITask, PaginatedResult } from '@/types/models.types';
-import { enqueueEmail } from '@/queues/emailQueue';
 
 interface CreateProjectDTO {
   name: string;
@@ -58,18 +57,13 @@ export class ProjectService {
     return project;
   }
 
-  async addMember(projectId: string, email: string, requesterId?: string): Promise<IProject> {
+  async addMember(projectId: string, email: string): Promise<IProject> {
     const User = (await import('@/models/User.model')).default;
     const user = await User.findOne({ email: email.toLowerCase().trim() });
     if (!user) throw new AppError('No user found with that email address', 404);
 
     const project = await Project.findById(projectId);
     if (!project) throw new AppError('Project not found', 404);
-
-    // BUG-01 fix: only the project owner can add members
-    if (requesterId && project.owner.toString() !== requesterId) {
-      throw new AppError('Only the project owner can add members', 403);
-    }
 
     const alreadyMember = project.members.some(
       (m) => m.toString() === (user._id as Types.ObjectId).toString(),
@@ -78,21 +72,6 @@ export class ProjectService {
 
     project.members.push(user._id as Types.ObjectId);
     await project.save();
-
-    // Send email notification to the newly added member
-    let ownerName = 'Project Owner';
-    if (requesterId) {
-      const owner = await User.findById(requesterId).select('name');
-      if (owner) ownerName = owner.name;
-    }
-    void enqueueEmail({
-      type: 'projectMemberAdded',
-      to: user.email,
-      memberName: user.name,
-      projectName: project.name,
-      ownerName,
-    }).catch(() => {});
-
     return project.populate('members', 'name email');
   }
 

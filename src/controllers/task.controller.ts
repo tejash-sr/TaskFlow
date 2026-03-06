@@ -8,7 +8,7 @@ export const createTask = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const listTasks = asyncHandler(async (req: Request, res: Response) => {
-  const { page, limit, status, priority, assignee, search, sortBy, sortOrder } = req.query as Record<string, string>;
+  const { page, limit, status, priority, assignee } = req.query as Record<string, string>;
 
   const result = await taskService.findAll({
     page: page ? parseInt(page, 10) : 1,
@@ -16,9 +16,6 @@ export const listTasks = asyncHandler(async (req: Request, res: Response) => {
     status,
     priority,
     assignee,
-    search,
-    sortBy,
-    sortOrder: sortOrder as 'asc' | 'desc' | undefined,
   });
 
   res.status(200).json({ status: 'success', ...result });

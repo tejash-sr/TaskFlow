@@ -9,7 +9,6 @@ const commentSchema = new Schema<IComment, ICommentModel>(
       type: String,
       required: [true, 'Content is required'],
       trim: true,
-      minlength: [1, 'Comment cannot be empty'],
       maxlength: [2000, 'Content must not exceed 2000 characters'],
     },
     author: {

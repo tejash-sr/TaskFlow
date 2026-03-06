@@ -72,7 +72,6 @@ describe('TaskService', () => {
   describe('findAll', () => {
     it('passes page and limit correctly to the query', async () => {
       const mockFind = {
-        sort: jest.fn().mockReturnThis(),
         skip: jest.fn().mockReturnThis(),
         limit: jest.fn().mockReturnThis(),
         populate: jest.fn().mockReturnThis(),
@@ -85,31 +84,24 @@ describe('TaskService', () => {
 
       await service.findAll({ page: 2, limit: 10 });
 
-      expect(mockFind.sort).toHaveBeenCalled();
       expect(mockFind.skip).toHaveBeenCalledWith(10);
       expect(mockFind.limit).toHaveBeenCalledWith(10);
     });
   });
 
   describe('update', () => {
-    it('uses findOne and save to apply only the provided fields (triggers pre-save hooks)', async () => {
-      const taskId = new Types.ObjectId().toString();
-      const mockTask = {
-        _id: new Types.ObjectId(taskId),
-        title: 'Original',
-        status: 'todo',
-        assignee: new Types.ObjectId(),
-        project: new Types.ObjectId(),
-        deletedAt: undefined,
-        save: jest.fn().mockResolvedValue(undefined),
-      };
-      (MockedTask.findOne as jest.Mock).mockResolvedValue(mockTask);
+    it('uses $set to apply only the provided fields', async () => {
+      const updated = { _id: new Types.ObjectId(), title: 'Updated', status: 'done' };
+      (MockedTask.findOneAndUpdate as jest.Mock).mockResolvedValue(updated);
 
-      const result = await service.update(taskId, { title: 'Updated' });
+      const result = await service.update(new Types.ObjectId().toString(), { title: 'Updated' });
 
-      expect(MockedTask.findOne).toHaveBeenCalledWith({ _id: taskId, deletedAt: { $exists: false } });
-      expect(mockTask.save).toHaveBeenCalled();
-      expect(result.title).toBe('Updated');
+      expect(MockedTask.findOneAndUpdate).toHaveBeenCalledWith(
+        expect.anything(),
+        { $set: { title: 'Updated' } },
+        expect.objectContaining({ new: true }),
+      );
+      expect(result).toEqual(updated);
     });
   });
 

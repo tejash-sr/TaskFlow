@@ -1,7 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { AppError } from '@/utils/AppError';
 import { verifyAccessToken } from '@/utils/tokenUtils';
-import { isTokenBlacklisted } from '@/utils/tokenBlacklist';
 
 export function isAuth(req: Request, _res: Response, next: NextFunction): void {
   const header = req.headers.authorization;
@@ -14,17 +13,7 @@ export function isAuth(req: Request, _res: Response, next: NextFunction): void {
     const payload = verifyAccessToken(token);
     req.userId = payload.userId;
     req.userRole = payload.role;
-
-    // Async blacklist check — we do NOT await in the sync middleware path;
-    // instead we convert to a promise-based flow via next(err).
-    isTokenBlacklisted(token).then((blacklisted) => {
-      if (blacklisted) {
-        next(new AppError('Token has been revoked. Please log in again.', 401));
-      } else {
-        next();
-      }
-    }).catch(() => next()); // fail-open: if Redis is down, let through
-
+    next();
   } catch (err: unknown) {
     next(err);
   }
@@ -37,20 +26,11 @@ export function isAdmin(req: Request, _res: Response, next: NextFunction): void 
   next();
 }
 
-export function isOwnerOrAdmin(
-  getOwnerId: (req: Request) => string | undefined | Promise<string | undefined>,
-) {
+export function isOwnerOrAdmin(getOwnerId: (req: Request) => string | undefined) {
   return (req: Request, _res: Response, next: NextFunction): void => {
-    if (req.userRole === 'admin') { next(); return; }
-    const result = getOwnerId(req);
-    if (result instanceof Promise) {
-      result.then((ownerId) => {
-        if (ownerId && ownerId === req.userId) return next();
-        next(new AppError('Forbidden: insufficient permissions', 403));
-      }).catch(next);
-    } else {
-      if (result && result === req.userId) return next();
-      next(new AppError('Forbidden: insufficient permissions', 403));
-    }
+    if (req.userRole === 'admin') return next();
+    const ownerId = getOwnerId(req);
+    if (ownerId && ownerId === req.userId) return next();
+    next(new AppError('Forbidden: insufficient permissions', 403));
   };
 }

@@ -1,7 +1,6 @@
 import { Server as HttpServer } from 'http';
 import { Server as SocketServer, Socket } from 'socket.io';
 import { verifyAccessToken } from '@/utils/tokenUtils';
-import ProjectModel from '@/models/Project.model';
 
 let io: SocketServer | null = null;
 
@@ -36,25 +35,11 @@ export function initSocketServer(httpServer: HttpServer): SocketServer {
   io.on('connection', (socket: Socket) => {
     const { userId } = socket.data as { userId: string; role: string };
 
-    // PDF-11 fix: auto-join all project rooms the user belongs to on connection
-    void ProjectModel.find(
-      { $or: [{ members: userId }, { owner: userId }] },
-      '_id',
-    ).lean().then((projects) => {
-      for (const p of projects) {
-        void socket.join(`project:${String(p._id)}`);
-      }
-    });
 
-    // PDF-12 fix: membership check before allowing manual join
     socket.on('join:project', (projectId: string) => {
-      if (typeof projectId !== 'string' || projectId.length === 0) return;
-      void ProjectModel.findOne({
-        _id: projectId,
-        $or: [{ members: userId }, { owner: userId }],
-      }, '_id').lean().then((project) => {
-        if (project) void socket.join(`project:${projectId}`);
-      });
+      if (typeof projectId === 'string' && projectId.length > 0) {
+        void socket.join(`project:${projectId}`);
+      }
     });
 
 

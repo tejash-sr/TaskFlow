@@ -107,15 +107,6 @@ taskSchema.pre('save', function (next) {
   next();
 });
 
-// Indexes for common query patterns
-taskSchema.index({ project: 1, deletedAt: 1 });
-taskSchema.index({ assignee: 1, deletedAt: 1 });
-taskSchema.index({ status: 1, deletedAt: 1 });
-taskSchema.index({ priority: 1, deletedAt: 1 });
-taskSchema.index({ project: 1, status: 1, deletedAt: 1 });
-taskSchema.index({ dueDate: 1, deletedAt: 1 });
-taskSchema.index({ createdAt: -1 });
-
 taskSchema.statics.findByProject = async function (
   projectId: Types.ObjectId | string,
   page = 1,

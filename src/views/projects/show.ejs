@@ -168,8 +168,6 @@
           <p style="font-size:0.85rem;color:var(--text-tertiary);padding:var(--space-3) 0;">No members yet.</p>
         <% } %>
       </div>
-      <!-- UI-08 fix: only show Add Member form to project owner -->
-      <% if (user && project.owner && project.owner._id && project.owner._id.toString() === user.id) { %>
       <div class="add-member-form">
         <h5 style="font-size:0.75rem;font-weight:700;color:var(--text-tertiary);margin-bottom:var(--space-3);text-transform:uppercase;letter-spacing:0.5px;">
           <i class="fas fa-user-plus"></i> Add Member
@@ -179,7 +177,6 @@
           <button type="submit" class="btn btn-primary btn-sm">Add</button>
         </form>
       </div>
-      <% } %>
     </div>
 
     <div class="project-sidebar-card">

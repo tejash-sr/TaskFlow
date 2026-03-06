@@ -2,16 +2,13 @@ import { Router } from 'express';
 import {
   signup,
   login,
-  logout,
   refresh,
   forgotPassword,
   resetPassword,
   verifyEmail,
   resendVerification,
   getMe,
-  updateMe,
   uploadAvatar,
-  deleteAvatar,
 } from '@/controllers/auth.controller';
 import { isAuth } from '@/middleware/auth.middleware';
 import { validate } from '@/middleware/validate.middleware';
@@ -85,20 +82,6 @@ router.post('/signup', validate(signupValidation), signup);
  *         description: Invalid credentials
  */
 router.post('/login', validate(loginValidation), login);
-
-/**
- * @openapi
- * /auth/logout:
- *   post:
- *     tags: [Auth]
- *     summary: Logout and invalidate the current access token
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Logged out successfully
- */
-router.post('/logout', isAuth, logout);
 
 /**
  * @openapi
@@ -229,8 +212,6 @@ router.post('/resend-verification', validate(forgotPasswordValidation), resendVe
  *         description: Unauthorized
  */
 router.get('/me', isAuth, getMe);
-// MISSING-01: PUT /api/auth/me for profile update via REST API
-router.put('/me', isAuth, updateMe);
 
 /**
  * @openapi
@@ -257,24 +238,6 @@ router.put('/me', isAuth, updateMe);
  *         description: No file uploaded or invalid file type
  */
 router.put('/me/avatar', isAuth, upload.single('avatar'), uploadAvatar);
-
-/**
- * @openapi
- * /auth/me/avatar:
- *   delete:
- *     tags: [Auth]
- *     summary: Delete the current user's avatar
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Avatar deleted successfully
- *       400:
- *         description: No avatar to delete
- *       401:
- *         description: Unauthorized
- */
-router.delete('/me/avatar', isAuth, deleteAvatar);
 
 export default router;
 

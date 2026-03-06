@@ -51,12 +51,6 @@
             <%= error %>
           </div>
         <% } %>
-        <% if (typeof message !== 'undefined' && message) { %>
-          <div class="alert alert-success">
-            <i class="fas fa-check-circle"></i>
-            <%= message %>
-          </div>
-        <% } %>
 
         <div class="auth-form">
           <form action="/login" method="POST">
@@ -84,9 +78,6 @@
                   placeholder="Enter your password"
                   required autocomplete="current-password"
                 />
-                <button type="button" class="password-toggle-btn" onclick="togglePassword('password')" title="Show/hide password">
-                  <i class="fas fa-eye" id="password-eye"></i>
-                </button>
               </div>
             </div>
             <button type="submit" class="btn btn-primary btn-block">
@@ -101,17 +92,3 @@
       </div>
     </div>
   </div>
-
-<script>
-function togglePassword(fieldId) {
-  const input = document.getElementById(fieldId);
-  const eye = document.getElementById(fieldId + '-eye');
-  if (input.type === 'password') {
-    input.type = 'text';
-    eye.classList.replace('fa-eye', 'fa-eye-slash');
-  } else {
-    input.type = 'password';
-    eye.classList.replace('fa-eye-slash', 'fa-eye');
-  }
-}
-</script>
