@@ -70,7 +70,7 @@ jobs:
         run: npm ci
 
       - name: Run all tests with coverage
-        run: npx jest --forceExit --coverage
+        run: npm test -- --forceExit --coverage
 
       - name: Upload coverage to Codecov
         if: matrix.node-version == '20'

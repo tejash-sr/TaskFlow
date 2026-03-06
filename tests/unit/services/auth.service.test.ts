@@ -31,7 +31,7 @@ const makeUser = (overrides: Partial<{
 
 describe('AuthService', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    jest.resetAllMocks();
   });
 
   describe('signup', () => {
