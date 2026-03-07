@@ -145,9 +145,15 @@ export const createProjectValidation = [
 
 export const createCommentValidation = [
   param('id').isMongoId().withMessage('Invalid task ID'),
+  // Accept either 'content' (REST API) or 'body' (spec wording) — one must be present
   body('content')
+    .if(body('body').not().exists())
     .trim()
-    .customSanitizer((v: string) => v.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, ''))
     .notEmpty().withMessage('Comment content is required')
+    .isLength({ min: 1, max: 2000 }).withMessage('Comment must be 1–2000 characters'),
+  body('body')
+    .if(body('content').not().exists())
+    .trim()
+    .notEmpty().withMessage('Comment body is required')
     .isLength({ min: 1, max: 2000 }).withMessage('Comment must be 1–2000 characters'),
 ];

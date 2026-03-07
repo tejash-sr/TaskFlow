@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken';
-import { signAccessToken, signRefreshToken, verifyAccessToken, verifyRefreshToken } from '@/utils/tokenUtils';
+import { signAccessToken, signRefreshToken, verifyAccessToken, verifyRefreshToken, decodeToken } from '@/utils/tokenUtils';
 
 describe('tokenUtils', () => {
   const userId = 'test-user-id';
@@ -52,6 +52,25 @@ describe('tokenUtils', () => {
       const accessToken = signAccessToken({ userId, role });
       // Refresh token verifier uses a different secret → should throw
       expect(() => verifyRefreshToken(accessToken)).toThrow();
+    });
+  });
+
+  describe('decodeToken', () => {
+    it('returns the decoded payload for a valid token', () => {
+      const token = signAccessToken({ userId, role });
+      const decoded = decodeToken(token);
+      expect(decoded).not.toBeNull();
+      expect(decoded).toHaveProperty('userId', userId);
+    });
+
+    it('returns null for an invalid / non-JWT string', () => {
+      const decoded = decodeToken('not.a.valid.jwt');
+      expect(decoded).toBeNull();
+    });
+
+    it('returns null for completely non-JWT input', () => {
+      const decoded = decodeToken('plainstring');
+      expect(decoded).toBeNull();
     });
   });
 });

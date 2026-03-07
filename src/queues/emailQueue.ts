@@ -54,6 +54,7 @@ export interface DigestEmailJob {
   to: string;
   name: string;
   overdueCount: number;
+  tasks?: Array<{ title: string; dueDate?: Date; priority?: string }>;
 }
 
 export type EmailJobData = WelcomeEmailJob | VerifyEmailJob | PasswordResetEmailJob | TaskAssignedEmailJob | ProjectMemberAddedEmailJob | CommentAddedEmailJob | DigestEmailJob;

@@ -147,12 +147,12 @@ export const uploadAvatar = asyncHandler(async (req: Request, res: Response) => 
   user.avatar = avatarRelPath;
   await user.save({ validateBeforeSave: false });
 
-  const baseUrl = process.env.BASE_URL || `http://localhost:${process.env.PORT || 5000}`;
+  const baseUrl = process.env.CLIENT_URL || process.env.BASE_URL || `http://localhost:${process.env.PORT || 5000}`;
   res.status(200).json({
     status: 'success',
     data: {
       avatar: user.avatar,
-      avatarUrl: `${baseUrl}/${user.avatar}`,
+      avatarUrl: `${baseUrl}/${user.avatar.replace(/\\/g, '/')}`,
     },
   });
 });

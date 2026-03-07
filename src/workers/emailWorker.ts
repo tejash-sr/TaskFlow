@@ -31,13 +31,16 @@ async function processEmailJob(job: Job<EmailJobData>): Promise<void> {
       });
       break;
 
-    case 'taskAssigned':
+    case 'taskAssigned': {
+      const appUrl = process.env.CLIENT_URL || `http://localhost:${process.env.PORT || 5000}`;
+      const taskUrl = `${appUrl}/tasks/${data.taskId}`;
       await sendMail({
         to: data.to,
         subject: `TaskFlow — New Task Assigned: ${data.taskTitle}`,
-        html: taskAssignedEmail(data.assigneeName, data.taskTitle, data.projectName),
+        html: taskAssignedEmail(data.assigneeName, data.taskTitle, data.projectName, taskUrl),
       });
       break;
+    }
 
     case 'projectMemberAdded':
       await sendMail({
@@ -47,19 +50,22 @@ async function processEmailJob(job: Job<EmailJobData>): Promise<void> {
       });
       break;
 
-    case 'commentAdded':
+    case 'commentAdded': {
+      const appUrl = process.env.CLIENT_URL || `http://localhost:${process.env.PORT || 5000}`;
+      const taskUrl = data.taskUrl || `${appUrl}/tasks`;
       await sendMail({
         to: data.to,
         subject: `TaskFlow — New Comment on "${data.taskTitle}"`,
-        html: commentAddedEmail(data.assigneeName, data.commenterName, data.taskTitle, data.projectName),
+        html: commentAddedEmail(data.assigneeName, data.commenterName, data.taskTitle, data.projectName, taskUrl),
       });
       break;
+    }
 
     case 'dailyDigest':
       await sendMail({
         to: data.to,
         subject: `TaskFlow — Daily Digest: ${data.overdueCount} overdue task${data.overdueCount === 1 ? '' : 's'}`,
-        html: dailyDigestEmail(data.name, data.overdueCount),
+        html: dailyDigestEmail(data.name, data.overdueCount, data.tasks),
       });
       break;
 

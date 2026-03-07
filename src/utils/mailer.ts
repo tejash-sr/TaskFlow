@@ -8,14 +8,19 @@ export interface MailOptions {
   text?: string;
 }
 
-const DEV_HOSTS = ['localhost', '127.0.0.1', ''];
+// --------------------------------------------------------------------------
+// Transport factory
+// - In test environment: always use stream transport (no real network calls)
+// - In production/dev: use SMTP if EMAIL_HOST is configured, else log to console
+// --------------------------------------------------------------------------
 
-function isDevMode() {
-  return env.isTest || !env.email.host || DEV_HOSTS.includes(env.email.host.toLowerCase());
+function hasSmtpConfig(): boolean {
+  return Boolean(env.email.host && env.email.host.trim() !== '');
 }
 
 function createTransporter() {
-  if (isDevMode()) {
+  // Test mode: never send real emails
+  if (env.isTest) {
     return nodemailer.createTransport({
       streamTransport: true,
       newline: 'unix',
@@ -23,41 +28,62 @@ function createTransporter() {
     });
   }
 
+  // Production/dev with SMTP configured
+  if (hasSmtpConfig()) {
+    return nodemailer.createTransport({
+      host: env.email.host,
+      port: env.email.port,
+      secure: env.email.port === 465,
+      auth: {
+        user: env.email.user,
+        pass: env.email.password,
+      },
+      // Increase timeouts for Render/Heroku cold-start scenarios
+      connectionTimeout: 10000,
+      greetingTimeout: 5000,
+    });
+  }
+
+  // Fallback: log-only transporter (no SMTP configured)
   return nodemailer.createTransport({
-    host: env.email.host,
-    port: env.email.port,
-    secure: env.email.port === 465,
-    auth: {
-      user: env.email.user,
-      pass: env.email.password,
-    },
+    streamTransport: true,
+    newline: 'unix',
+    buffer: true,
   });
 }
 
 export const transporter = createTransporter();
 
 export async function sendMail(options: MailOptions): Promise<void> {
-  if (isDevMode()) {
-    const textBody = options.text ?? options.html.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
-    // eslint-disable-next-line no-console
-    console.log('\n===== [DEV EMAIL] =====');
-    // eslint-disable-next-line no-console
-    console.log(`To:      ${options.to}`);
-    // eslint-disable-next-line no-console
-    console.log(`Subject: ${options.subject}`);
-    // eslint-disable-next-line no-console
-    console.log(`Body:    ${textBody.substring(0, 500)}`);
-    // eslint-disable-next-line no-console
-    console.log('========================\n');
+  // In test mode: swallow silently (no console spam in test output)
+  if (env.isTest) {
     return;
   }
-  await transporter.sendMail({
-    from: `"TaskFlow" <${env.email.user || 'noreply@taskflow.app'}>`,
-    to: options.to,
-    subject: options.subject,
-    html: options.html,
-    text: options.text ?? options.html.replace(/<[^>]*>/g, ''),
-  });
+
+  // If no SMTP configured: log to stdout so developers can see emails during local dev
+  if (!hasSmtpConfig()) {
+    const textBody = options.text ?? options.html.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+    process.stdout.write(`\n===== [DEV EMAIL — configure EMAIL_HOST to send real emails] =====\n`);
+    process.stdout.write(`To:      ${options.to}\n`);
+    process.stdout.write(`Subject: ${options.subject}\n`);
+    process.stdout.write(`Body:    ${textBody.substring(0, 500)}\n`);
+    process.stdout.write(`================================================================\n\n`);
+    return;
+  }
+
+  // Real SMTP send
+  try {
+    await transporter.sendMail({
+      from: `"TaskFlow" <${env.email.user || 'noreply@taskflow.app'}>`,
+      to: options.to,
+      subject: options.subject,
+      html: options.html,
+      text: options.text ?? options.html.replace(/<[^>]*>/g, ''),
+    });
+  } catch (err) {
+    // Log but don't throw — email failure should never crash the app
+    process.stderr.write(`[Mailer] Failed to send email to ${options.to}: ${String(err)}\n`);
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

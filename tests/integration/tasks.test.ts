@@ -200,4 +200,134 @@ describe('Task API — integration', () => {
       expect(res.body.data.every((t: { project: string }) => t.project === project._id.toString())).toBe(true);
     });
   });
+
+  describe('GET /api/tasks/cursor', () => {
+    it('returns cursor-paginated tasks with hasMore and nextCursor', async () => {
+      const { user, project } = await seedUserAndProject();
+      const app = createTestApp(user._id.toString());
+
+      await Task.create([
+        { title: 'Cursor Task A', description: 'desc', assignee: user._id, project: project._id },
+        { title: 'Cursor Task B', description: 'desc', assignee: user._id, project: project._id },
+      ]);
+
+      const res = await request(app).get('/api/tasks/cursor');
+
+      expect(res.status).toBe(200);
+      expect(res.body).toHaveProperty('hasMore');
+      expect(res.body).toHaveProperty('nextCursor');
+      expect(Array.isArray(res.body.data)).toBe(true);
+    });
+
+    it('accepts cursor and limit query params', async () => {
+      const { user, project } = await seedUserAndProject();
+      const app = createTestApp(user._id.toString());
+
+      await Task.create([
+        { title: 'Limited Task A', description: 'desc', assignee: user._id, project: project._id },
+        { title: 'Limited Task B', description: 'desc', assignee: user._id, project: project._id },
+        { title: 'Limited Task C', description: 'desc', assignee: user._id, project: project._id },
+      ]);
+
+      const res = await request(app).get('/api/tasks/cursor?limit=2');
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.length).toBeLessThanOrEqual(2);
+    });
+
+    it('uses cursor to paginate through results', async () => {
+      const { user, project } = await seedUserAndProject();
+      const app = createTestApp(user._id.toString());
+
+      await Task.create([
+        { title: 'Page1 Task A', description: 'desc', assignee: user._id, project: project._id },
+        { title: 'Page1 Task B', description: 'desc', assignee: user._id, project: project._id },
+      ]);
+
+      const firstPage = await request(app).get('/api/tasks/cursor?limit=1');
+      expect(firstPage.status).toBe(200);
+
+      if (firstPage.body.nextCursor) {
+        const secondPage = await request(app).get(
+          `/api/tasks/cursor?cursor=${firstPage.body.nextCursor}&limit=1`,
+        );
+        expect(secondPage.status).toBe(200);
+      }
+    });
+  });
+
+  describe('POST /api/tasks — with optional fields', () => {
+    it('creates a task with a future dueDate', async () => {
+      const { user, project } = await seedUserAndProject();
+      const app = createTestApp(user._id.toString());
+      const futureDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+
+      const res = await request(app)
+        .post('/api/tasks')
+        .send({
+          title: 'Task with Due Date',
+          description: 'Has a due date in the future',
+          assignee: user._id.toString(),
+          project: project._id.toString(),
+          dueDate: futureDate,
+        });
+
+      expect(res.status).toBe(201);
+      expect(res.body.data).toHaveProperty('title', 'Task with Due Date');
+    });
+
+    it('returns 422 for a past dueDate', async () => {
+      const { user, project } = await seedUserAndProject();
+      const app = createTestApp(user._id.toString());
+      const pastDate = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+
+      const res = await request(app)
+        .post('/api/tasks')
+        .send({
+          title: 'Past Due Task',
+          description: 'has a past due date',
+          assignee: user._id.toString(),
+          project: project._id.toString(),
+          dueDate: pastDate,
+        });
+
+      expect(res.status).toBe(422);
+    });
+  });
+
+  describe('GET /api/tasks — with page and limit', () => {
+    it('uses provided page and limit params', async () => {
+      const { user, project } = await seedUserAndProject();
+      const app = createTestApp(user._id.toString());
+
+      await Task.create([
+        { title: 'Paged Task A', description: 'desc', assignee: user._id, project: project._id },
+        { title: 'Paged Task B', description: 'desc', assignee: user._id, project: project._id },
+      ]);
+
+      const res = await request(app).get('/api/tasks?page=1&limit=5');
+
+      expect(res.status).toBe(200);
+      expect(res.body).toHaveProperty('page', 1);
+      expect(res.body).toHaveProperty('limit', 5);
+    });
+  });
+
+  describe('GET /api/tasks/export/csv — with filters', () => {
+    it('exports CSV filtered by status and priority', async () => {
+      const { user, project } = await seedUserAndProject();
+      const app = createTestApp(user._id.toString());
+
+      await Task.create({
+        title: 'High Priority Done', description: 'desc',
+        assignee: user._id, project: project._id,
+        status: 'done', priority: 'high',
+      });
+
+      const res = await request(app).get('/api/tasks/export/csv?status=done&priority=high');
+
+      expect(res.status).toBe(200);
+      expect(res.headers['content-type']).toMatch(/text\/csv/);
+    });
+  });
 });

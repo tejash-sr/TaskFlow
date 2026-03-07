@@ -3,7 +3,8 @@ import { asyncHandler } from '@/utils/asyncHandler';
 import commentService from '@/services/comment.service';
 
 export const addComment = asyncHandler(async (req: Request, res: Response) => {
-  const comment = await commentService.create(req.params.id, req.userId!, req.body);
+  const content = req.body.content || req.body.body || '';
+  const comment = await commentService.create(req.params.id, req.userId!, { content });
   res.status(201).json({ status: 'success', data: comment });
 });
 
