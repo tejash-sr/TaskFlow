@@ -36,7 +36,7 @@
         </div>
         <div class="form-group">
           <label class="form-label" for="description">Description <span class="required-star">*</span></label>
-          <textarea id="description" name="description" class="form-input" rows="4"
+          <textarea id="description" name="description" class="form-input" rows="4" required
             placeholder="Describe the task in detail&hellip;"><%= typeof formData !== 'undefined' && formData.description ? formData.description : '' %></textarea>
         </div>
       </div>

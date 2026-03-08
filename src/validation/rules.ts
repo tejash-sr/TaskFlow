@@ -4,6 +4,7 @@ import { body, param, query } from 'express-validator';
 export const signupValidation = [
   body('name')
     .trim()
+    .escape()
     .notEmpty().withMessage('Name is required')
     .isLength({ min: 2, max: 50 }).withMessage('Name must be 2–50 characters'),
   body('email')
@@ -104,6 +105,7 @@ export const updateTaskValidation = [
   body('title')
     .optional()
     .trim()
+    .escape()
     .isLength({ min: 3, max: 100 }).withMessage('Title must be 3–100 characters'),
   body('status')
     .optional()
@@ -149,11 +151,13 @@ export const createCommentValidation = [
   body('content')
     .if(body('body').not().exists())
     .trim()
+    .escape()
     .notEmpty().withMessage('Comment content is required')
     .isLength({ min: 1, max: 2000 }).withMessage('Comment must be 1–2000 characters'),
   body('body')
     .if(body('content').not().exists())
     .trim()
+    .escape()
     .notEmpty().withMessage('Comment body is required')
     .isLength({ min: 1, max: 2000 }).withMessage('Comment must be 1–2000 characters'),
 ];

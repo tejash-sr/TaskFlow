@@ -332,33 +332,7 @@ router.post('/profile/update', requireWebAuth, async (req: Request, res: Respons
 router.post('/profile/avatar', requireWebAuth, upload.single('avatar'), uploadAvatar);
 router.delete('/profile/avatar', requireWebAuth, deleteAvatar);
 
-// UI-03 fix: inline change-password form
-router.post('/profile/change-password', requireWebAuth, async (req: Request, res: Response) => {
-  const { currentPassword, newPassword, confirmPassword } = req.body as {
-    currentPassword: string;
-    newPassword: string;
-    confirmPassword: string;
-  };
-  try {
-    if (!currentPassword) throw new Error('Current password is required');
-    if (!newPassword || newPassword.length < 8) throw new Error('New password must be at least 8 characters');
-    if (newPassword !== confirmPassword) throw new Error('Passwords do not match');
-
-    const UserModel = (await import('@/models/User.model')).default;
-    const user = await UserModel.findById(req.userId).select('+password');
-    if (!user) return res.redirect('/login');
-
-    const valid = await user.comparePassword(currentPassword);
-    if (!valid) throw new Error('Current password is incorrect');
-
-    user.password = newPassword;
-    await user.save();
-
-    res.redirect('/profile?success=Password+changed+successfully');
-  } catch (err) {
-    res.redirect('/profile?error=' + encodeURIComponent((err as Error).message));
-  }
-});
+// Password changes are now email-only via /forgot-password + /reset-password flow
 
 
 router.get('/dashboard', requireWebAuth, async (req: Request, res: Response) => {

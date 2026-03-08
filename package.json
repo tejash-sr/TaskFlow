@@ -85,6 +85,7 @@
     "kill-port": "^2.0.1",
     "mongodb-memory-server": "^9.1.6",
     "prettier": "^3.2.4",
+    "socket.io-client": "^4.8.3",
     "supertest": "^6.3.4",
     "ts-jest": "^29.1.2",
     "ts-node": "^10.9.2",
@@ -94,9 +95,5 @@
   },
   "engines": {
     "node": ">=20.0.0"
-  },
-  "mongodbMemoryServer": {
-    "version": "6.0.14",
-    "storageEngine": "wiredTiger"
   }
 }

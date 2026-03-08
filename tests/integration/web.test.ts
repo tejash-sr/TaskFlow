@@ -558,59 +558,15 @@ describe('Web routes — profile form submissions', () => {
     expect(res.header.location).toContain('error');
   });
 
-  it('POST /profile/change-password with wrong current password redirects with error', async () => {
+  it('POST /profile/change-password route removed — returns 404', async () => {
     const { cookie } = await seedWithCookie();
     const res = await request(app)
       .post('/profile/change-password')
       .set('Cookie', cookie)
-      .send('currentPassword=wrongpass&newPassword=newpass123&confirmPassword=newpass123')
+      .send('currentPassword=password123&newPassword=newpass123&confirmPassword=newpass123')
       .set('Content-Type', 'application/x-www-form-urlencoded');
-    expect(res.status).toBe(302);
-    expect(res.header.location).toContain('error');
-  });
-
-  it('POST /profile/change-password with password mismatch redirects with error', async () => {
-    const { cookie } = await seedWithCookie();
-    const res = await request(app)
-      .post('/profile/change-password')
-      .set('Cookie', cookie)
-      .send('currentPassword=password123&newPassword=newpass123&confirmPassword=different')
-      .set('Content-Type', 'application/x-www-form-urlencoded');
-    expect(res.status).toBe(302);
-    expect(res.header.location).toContain('error');
-  });
-
-  it('POST /profile/change-password with short new password redirects with error', async () => {
-    const { cookie } = await seedWithCookie();
-    const res = await request(app)
-      .post('/profile/change-password')
-      .set('Cookie', cookie)
-      .send('currentPassword=password123&newPassword=short&confirmPassword=short')
-      .set('Content-Type', 'application/x-www-form-urlencoded');
-    expect(res.status).toBe(302);
-    expect(res.header.location).toContain('error');
-  });
-
-  it('POST /profile/change-password with no current password redirects with error', async () => {
-    const { cookie } = await seedWithCookie();
-    const res = await request(app)
-      .post('/profile/change-password')
-      .set('Cookie', cookie)
-      .send('newPassword=newpass123&confirmPassword=newpass123')
-      .set('Content-Type', 'application/x-www-form-urlencoded');
-    expect(res.status).toBe(302);
-    expect(res.header.location).toContain('error');
-  });
-
-  it('POST /profile/change-password successfully changes password', async () => {
-    const { cookie } = await seedWithCookie();
-    const res = await request(app)
-      .post('/profile/change-password')
-      .set('Cookie', cookie)
-      .send('currentPassword=password123&newPassword=newpassword123&confirmPassword=newpassword123')
-      .set('Content-Type', 'application/x-www-form-urlencoded');
-    expect(res.status).toBe(302);
-    expect(res.header.location).toContain('/profile');
+    // Route removed — password changes now use email reset flow only
+    expect([302, 404]).toContain(res.status);
   });
 });
 

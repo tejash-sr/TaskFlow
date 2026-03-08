@@ -1,5 +1,4 @@
 import { Request, Response } from 'express';
-import path from 'path';
 import fs from 'fs';
 import { asyncHandler } from '@/utils/asyncHandler';
 import authService from '@/services/auth.service';
@@ -110,50 +109,31 @@ export const uploadAvatar = asyncHandler(async (req: Request, res: Response) => 
   const user = await User.findById(req.userId);
   if (!user) throw new AppError('User not found', 404);
 
-  // Ensure avatars subdirectory exists
-  const avatarsDir = path.join(process.cwd(), 'uploads', 'avatars');
-  if (!fs.existsSync(avatarsDir)) {
-    fs.mkdirSync(avatarsDir, { recursive: true });
-  }
-
-  let avatarRelPath: string;
-
+  let imageBuffer: Buffer;
   try {
-    // Dynamically import sharp so tests without it still work
     const sharp = (await import('sharp')).default;
-    const processedFilename = `avatar-${req.userId}-${Date.now()}.jpg`;
-    const processedPath = path.join(avatarsDir, processedFilename);
-
-    await sharp(req.file.path)
+    imageBuffer = await sharp(req.file.buffer || req.file.path)
       .resize(200, 200, { fit: 'cover', position: 'center' })
-      .jpeg({ quality: 90 })
-      .toFile(processedPath);
-
-    // Delete original uploaded file
-    try { fs.unlinkSync(req.file.path); } catch { /* ignore */ }
-
-    avatarRelPath = `uploads/avatars/${processedFilename}`;
+      .jpeg({ quality: 85 })
+      .toBuffer();
   } catch {
-    // Fallback: use file as-is if sharp fails
-    avatarRelPath = req.file.path.replace(/\\/g, '/').replace(/^.*uploads\//, 'uploads/');
+    imageBuffer = req.file.buffer || fs.readFileSync(req.file.path);
   }
 
-  // Delete old avatar if exists
-  if (user.avatar) {
-    const oldPath = path.join(process.cwd(), user.avatar);
-    try { fs.unlinkSync(oldPath); } catch { /* ignore */ }
+  // Clean up temp file if it was saved to disk
+  if (req.file.path) {
+    try { fs.unlinkSync(req.file.path); } catch { /* ignore */ }
   }
 
-  user.avatar = avatarRelPath;
+  // Store avatar as base64 data URI in MongoDB (survives Render restarts)
+  const base64 = imageBuffer.toString('base64');
+  const mimeType = 'image/jpeg';
+  user.avatar = `data:${mimeType};base64,${base64}`;
   await user.save({ validateBeforeSave: false });
 
-  const baseUrl = process.env.CLIENT_URL || process.env.BASE_URL || `http://localhost:${process.env.PORT || 5000}`;
   res.status(200).json({
     status: 'success',
-    data: {
-      avatar: user.avatar,
-      avatarUrl: `${baseUrl}/${user.avatar.replace(/\\/g, '/')}`,
-    },
+    data: { avatar: user.avatar, avatarUrl: user.avatar },
   });
 });
 
@@ -177,9 +157,6 @@ export const deleteAvatar = asyncHandler(async (req: Request, res: Response) => 
   if (!user) throw new AppError('User not found', 404);
 
   if (!user.avatar) throw new AppError('No avatar to delete', 400);
-
-  const avatarPath = path.join(process.cwd(), user.avatar);
-  try { fs.unlinkSync(avatarPath); } catch { /* ignore if file missing */ }
 
   user.avatar = undefined;
   await user.save({ validateBeforeSave: false });

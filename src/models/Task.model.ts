@@ -1,5 +1,5 @@
 import { Schema, model, Model, Types } from 'mongoose';
-import { ITask, TaskStatus, TaskPriority, IAttachment, StatusCounts } from '@/types/models.types';
+import { ITask, TaskStatus, TaskPriority, IAttachment, StatusCounts, PaginatedResult } from '@/types/models.types';
 
 const MAX_TAGS = 10;
 const MAX_TAG_LENGTH = 30;
@@ -9,7 +9,7 @@ interface ITaskModel extends Model<ITask> {
     projectId: Types.ObjectId | string,
     page?: number,
     limit?: number,
-  ): Promise<ITask[]>;
+  ): Promise<PaginatedResult<ITask>>;
   findOverdue(): Promise<ITask[]>;
   getStatusCounts(projectId: Types.ObjectId | string): Promise<StatusCounts>;
 }
@@ -76,7 +76,7 @@ const taskSchema = new Schema<ITask, ITaskModel>(
       validate: {
         validator: function (this: ITask, value: Date) {
           if (!value) return true;
-          if (!this.isNew) return true;
+          if (this.isModified && !this.isModified('dueDate')) return true;
           return value > new Date();
         },
         message: 'Due date must be a future date',
@@ -120,11 +120,15 @@ taskSchema.statics.findByProject = async function (
   projectId: Types.ObjectId | string,
   page = 1,
   limit = 20,
-): Promise<ITask[]> {
+): Promise<PaginatedResult<ITask>> {
   const skip = (page - 1) * limit;
-  return this.find({ project: projectId, deletedAt: { $exists: false } })
-    .skip(skip)
-    .limit(limit);
+  const query = { project: projectId, deletedAt: { $exists: false } };
+  const [data, total] = await Promise.all([
+    this.find(query).skip(skip).limit(limit),
+    this.countDocuments(query),
+  ]);
+  const totalPages = Math.ceil(total / limit);
+  return { data, total, page, limit, totalPages, hasMore: page < totalPages };
 };
 
 taskSchema.statics.findOverdue = async function (): Promise<ITask[]> {

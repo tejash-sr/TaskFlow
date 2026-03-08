@@ -27,7 +27,7 @@
           <!-- Avatar display -->
           <div class="avatar-wrapper" id="avatarWrapper">
             <% if (user.avatar) { %>
-              <img src="/<%= user.avatar %>?v=<%= Date.now() %>" alt="Avatar" class="avatar-large" id="avatarPreview" />
+              <img src="<%= user.avatar %>" alt="Avatar" class="avatar-large" id="avatarPreview" />
             <% } else { %>
               <div class="avatar-large-initials" id="avatarInitials">
                 <%= user.name ? user.name.charAt(0).toUpperCase() : 'U' %>
@@ -152,61 +152,16 @@
         </form>
       </div>
 
-      <!-- Change Password Card -->
+      <!-- Change Password — via Email Reset Only -->
       <div class="profile-card">
         <p class="profile-section-title"><i class="fas fa-lock"></i> Change Password</p>
         <p style="font-size:0.875rem;color:var(--text-secondary);margin-bottom:var(--space-4);">
-          Choose a strong password with at least 8 characters.
+          For security, password changes are done through a secure email reset link. Click the button below to receive a reset link at your registered email.
         </p>
-
-        <form action="/profile/change-password" method="POST" id="passwordForm">
-          <div class="form-group">
-            <label class="form-label" for="currentPassword">Current Password</label>
-            <div class="input-wrapper">
-              <i class="fas fa-lock input-icon"></i>
-              <input type="password" id="currentPassword" name="currentPassword" class="form-input"
-                placeholder="Enter your current password" required autocomplete="current-password" />
-              <button type="button" class="password-toggle-btn" onclick="togglePwdField('currentPassword')" title="Show/hide">
-                <i class="fas fa-eye" id="currentPassword-eye"></i>
-              </button>
-            </div>
-          </div>
-          <div class="form-row-2">
-            <div class="form-group">
-              <label class="form-label" for="newPassword">New Password</label>
-              <div class="input-wrapper">
-                <i class="fas fa-key input-icon"></i>
-                <input type="password" id="newPassword" name="newPassword" class="form-input"
-                  placeholder="Min. 8 characters" required minlength="8" autocomplete="new-password" />
-                <button type="button" class="password-toggle-btn" onclick="togglePwdField('newPassword')" title="Show/hide">
-                  <i class="fas fa-eye" id="newPassword-eye"></i>
-                </button>
-              </div>
-            </div>
-            <div class="form-group">
-              <label class="form-label" for="confirmPassword">Confirm New Password</label>
-              <div class="input-wrapper">
-                <i class="fas fa-key input-icon"></i>
-                <input type="password" id="confirmPassword" name="confirmPassword" class="form-input"
-                  placeholder="Repeat new password" required minlength="8" autocomplete="new-password"
-                  oninput="checkPasswordMatch()" />
-                <button type="button" class="password-toggle-btn" onclick="togglePwdField('confirmPassword')" title="Show/hide">
-                  <i class="fas fa-eye" id="confirmPassword-eye"></i>
-                </button>
-              </div>
-              <span class="form-hint" id="pwdMatchHint"></span>
-            </div>
-          </div>
-
-          <div class="password-strength-bar" id="strengthBar" style="display:none;margin-bottom:var(--space-3);">
-            <div class="strength-track">
-              <div class="strength-fill" id="strengthFill"></div>
-            </div>
-            <span class="strength-label" id="strengthLabel"></span>
-          </div>
-
-          <button type="submit" class="btn btn-primary" id="pwdSubmitBtn">
-            <i class="fas fa-shield-alt"></i> Update Password
+        <form action="/forgot-password" method="POST" id="resetEmailForm">
+          <input type="hidden" name="email" value="<%= user.email %>" />
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-envelope"></i> Send Password Reset Email
           </button>
         </form>
       </div>
@@ -215,11 +170,8 @@
       <div class="profile-card" style="border-color:var(--color-danger);border-style:dashed;">
         <p class="profile-section-title" style="color:var(--color-danger);"><i class="fas fa-exclamation-triangle"></i> Danger Zone</p>
         <p style="font-size:0.875rem;color:var(--text-secondary);margin-bottom:var(--space-4);">
-          Need to reset your password via email? Use the forgot password flow for a secure reset link.
+          Destructive account actions. Be careful.
         </p>
-        <a href="/forgot-password" class="btn btn-ghost" style="border:1px solid var(--color-danger);color:var(--color-danger);">
-          <i class="fas fa-envelope"></i> Send Password Reset Email
-        </a>
       </div>
 
     </div>
@@ -291,63 +243,6 @@ function togglePwdField(id) {
     eye.classList.replace('fa-eye-slash', 'fa-eye');
   }
 }
-
-function checkPasswordMatch() {
-  const np = document.getElementById('newPassword').value;
-  const cp = document.getElementById('confirmPassword').value;
-  const hint = document.getElementById('pwdMatchHint');
-  const btn = document.getElementById('pwdSubmitBtn');
-  if (!cp) { hint.textContent = ''; return; }
-  if (cp === np) {
-    hint.textContent = '✓ Passwords match';
-    hint.style.color = 'var(--color-success)';
-    if (btn) btn.disabled = false;
-  } else {
-    hint.textContent = '✗ Passwords do not match';
-    hint.style.color = 'var(--color-danger)';
-    if (btn) btn.disabled = true;
-  }
-}
-
-// Password strength meter
-document.getElementById('newPassword').addEventListener('input', function() {
-  const val = this.value;
-  const bar = document.getElementById('strengthBar');
-  const fill = document.getElementById('strengthFill');
-  const label = document.getElementById('strengthLabel');
-  if (!val) { bar.style.display = 'none'; return; }
-  bar.style.display = 'flex';
-
-  let score = 0;
-  if (val.length >= 8) score++;
-  if (val.length >= 12) score++;
-  if (/[A-Z]/.test(val)) score++;
-  if (/[0-9]/.test(val)) score++;
-  if (/[^A-Za-z0-9]/.test(val)) score++;
-
-  const levels = [
-    { pct: '20%', color: '#ef4444', text: 'Very Weak' },
-    { pct: '40%', color: '#f97316', text: 'Weak' },
-    { pct: '60%', color: '#f59e0b', text: 'Fair' },
-    { pct: '80%', color: '#22c55e', text: 'Strong' },
-    { pct: '100%', color: '#10b981', text: 'Very Strong' },
-  ];
-  const lvl = levels[Math.min(score, 4)];
-  fill.style.width = lvl.pct;
-  fill.style.background = lvl.color;
-  label.textContent = lvl.text;
-  label.style.color = lvl.color;
-});
-
-// Prevent password form submit if passwords don't match
-document.getElementById('passwordForm').addEventListener('submit', function(e) {
-  const np = document.getElementById('newPassword').value;
-  const cp = document.getElementById('confirmPassword').value;
-  if (np !== cp) {
-    e.preventDefault();
-    showToast('Passwords do not match', 'error');
-    document.getElementById('confirmPassword').focus();
-  }
 });
 
 async function previewAndUploadAvatar(input) {
